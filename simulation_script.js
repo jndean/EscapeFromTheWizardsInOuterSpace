@@ -503,17 +503,20 @@ const colorShader = compileShader(gl.FRAGMENT_SHADER, `
     }
 `);
 
+
 const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, `
     precision highp float;
     precision highp sampler2D;
 
     varying vec2 vUv;
-    uniform sampler2D uTexture;
+    uniform sampler2D uWalls;
     uniform float aspectRatio;
 
 
     void main () {
-        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+        bool is_wall = texture2D(uWalls, vUv).r == 1.0;
+
+        gl_FragColor = vec4(float(is_wall), 0.0, 0.0, 0.0);
     }
 `);
 
@@ -530,6 +533,7 @@ const displayShaderSource = `
     uniform sampler2D uBloom;
     uniform sampler2D uSunrays;
     uniform sampler2D uDithering;
+    uniform sampler2D uWalls;
     uniform vec2 ditherScale;
     uniform vec2 texelSize;
 
@@ -557,6 +561,12 @@ const displayShaderSource = `
         c *= diffuse;
     #endif
 
+    bool is_wall = texture2D(uWalls, vUv).r == 1.0;
+    if (is_wall) {
+        gl_FragColor = vec4(vec3(0.15), 1.0);
+        return;
+    }
+
     #ifdef BLOOM
         vec3 bloom = texture2D(uBloom, vUv).rgb;
     #endif
@@ -576,6 +586,9 @@ const displayShaderSource = `
         bloom = linearToGamma(bloom);
         c += bloom;
     #endif
+
+    
+
 
         float a = max(c.r, max(c.g, c.b));
         gl_FragColor = vec4(c, a);
@@ -665,6 +678,7 @@ const sunraysShader = compileShader(gl.FRAGMENT_SHADER, `
 
     varying vec2 vUv;
     uniform sampler2D uTexture;
+    uniform sampler2D uWalls;
     uniform float weight;
 
     #define ITERATIONS 16
@@ -685,6 +699,10 @@ const sunraysShader = compileShader(gl.FRAGMENT_SHADER, `
         for (int i = 0; i < ITERATIONS; i++)
         {
             coord -= dir;
+
+            bool is_wall = texture2D(uWalls, coord).r == 1.0;
+            if (is_wall) break;
+
             float col = texture2D(uTexture, coord).a;
             color += col * illuminationDecay * weight;
             illuminationDecay *= Decay;
@@ -721,6 +739,7 @@ const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
     varying vec2 vUv;
     uniform sampler2D uVelocity;
     uniform sampler2D uSource;
+    uniform sampler2D uWalls;
     uniform vec2 texelSize;
     uniform vec2 dyeTexelSize;
     uniform float dt;
@@ -750,6 +769,12 @@ const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
     #endif
         float decay = 1.0 + dissipation * dt;
         gl_FragColor = result / decay;
+
+        bool is_wall = texture2D(uWalls, vUv).r == 1.0;
+        //is_wall = (vUv.x + vUv.y < 0.6);
+        if (is_wall) {
+            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+        }
     }`,
     ext.supportLinearFiltering ? null : ['MANUAL_FILTERING']
 );
@@ -929,6 +954,7 @@ let sunrays;
 let sunraysTemp;
 
 let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
+let wallsTexture = createTextureAsync('wall_map.png');
 
 const blurProgram            = new Program(blurVertexShader, blurShader);
 const copyProgram            = new Program(baseVertexShader, copyShader);
@@ -1256,6 +1282,7 @@ function step (dt) {
     let velocityId = velocity.read.attach(0);
     gl.uniform1i(advectionProgram.uniforms.uVelocity, velocityId);
     gl.uniform1i(advectionProgram.uniforms.uSource, velocityId);
+    gl.uniform1i(advectionProgram.uniforms.uWalls, wallsTexture.attach(1));
     gl.uniform1f(advectionProgram.uniforms.dt, dt);
     gl.uniform1f(advectionProgram.uniforms.dissipation, config.VELOCITY_DISSIPATION);
     blit(velocity.write);
@@ -1301,9 +1328,9 @@ function drawColor (target, color) {
 
 function drawCheckerboard (target) {
     checkerboardProgram.bind();
+    gl.uniform1i(checkerboardProgram.uniforms.uWalls, wallsTexture.attach(0));
     gl.uniform1f(checkerboardProgram.uniforms.aspectRatio, canvas.width / canvas.height);
     blit(target);
-    gl.clearColor(0.0, 0.0, 0.0, 0.5);
 }
 
 function drawDisplay (target) {
@@ -1322,6 +1349,7 @@ function drawDisplay (target) {
     }
     if (config.SUNRAYS)
         gl.uniform1i(displayMaterial.uniforms.uSunrays, sunrays.attach(3));
+    gl.uniform1i(displayMaterial.uniforms.uWalls, wallsTexture.attach(4));
     blit(target);
 }
 
