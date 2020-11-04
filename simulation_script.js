@@ -514,9 +514,9 @@ const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, `
 
 
     void main () {
-        bool is_wall = texture2D(uWalls, vUv).r == 1.0;
+        //bool is_wall = texture2D(uWalls, vUv).r == 1.0;
 
-        gl_FragColor = vec4(float(is_wall), 0.0, 0.0, 0.0);
+        gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     }
 `);
 
@@ -562,10 +562,10 @@ const displayShaderSource = `
     #endif
 
     bool is_wall = texture2D(uWalls, vUv).r == 1.0;
-    if (is_wall) {
-        gl_FragColor = vec4(vec3(0.15), 1.0);
-        return;
-    }
+    //if (is_wall) {
+        //gl_FragColor = vec4(vec3(0.15), 1.0);
+        //return;
+    //}
 
     #ifdef BLOOM
         vec3 bloom = texture2D(uBloom, vUv).rgb;
@@ -584,6 +584,7 @@ const displayShaderSource = `
         noise = noise * 2.0 - 1.0;
         bloom += noise / 255.0;
         bloom = linearToGamma(bloom);
+        if (is_wall) bloom *= 0.5;
         c += bloom;
     #endif
 
@@ -771,7 +772,6 @@ const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
         gl_FragColor = result / decay;
 
         bool is_wall = texture2D(uWalls, vUv).r == 1.0;
-        //is_wall = (vUv.x + vUv.y < 0.6);
         if (is_wall) {
             gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
         }
@@ -1210,7 +1210,7 @@ function updateColors (dt) {
     if (colorUpdateTimer >= 1) {
         colorUpdateTimer = wrap(colorUpdateTimer, 0, 1);
         pointers.forEach(p => {
-            p.color = generateColor();
+            p.color = randomColour();
         });
     }
 }
@@ -1435,7 +1435,7 @@ function splatPointer (pointer) {
 
 function multipleSplats (amount) {
     for (let i = 0; i < amount; i++) {
-        const color = generateColor();
+        const color = randomColour();
         color.r *= 10.0;
         color.g *= 10.0;
         color.b *= 10.0;
@@ -1544,7 +1544,7 @@ function updatePointerDownData (pointer, id, posX, posY) {
     pointer.prevTexcoordY = pointer.texcoordY;
     pointer.deltaX = 0;
     pointer.deltaY = 0;
-    pointer.color = generateColor();
+    pointer.color = randomColour();
 }
 
 function updatePointerMoveData (pointer, posX, posY) {
@@ -1573,7 +1573,7 @@ function correctDeltaY (delta) {
     return delta;
 }
 
-function generateColor () {
+function randomColour () {
     let c = HSVtoRGB(Math.random(), 1.0, 1.0);
     c.r *= 0.15;
     c.g *= 0.15;

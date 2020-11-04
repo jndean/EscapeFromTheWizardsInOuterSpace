@@ -10,6 +10,16 @@
 // 	10000
 // );
 
+function colourFromHSV (h, s, v) {
+    let c = HSVtoRGB(h, s, v);
+    c.r *= 0.15;
+    c.g *= 0.15;
+    c.b *= 0.15;
+    return c;
+}
+
+function colourFromHue (hue) {return colourFromHSV(hue, 1.0, 1.0)}
+
 function Point(x, y) {
 	this.x = x;
 	this.y = y;
@@ -21,7 +31,7 @@ function Point(x, y) {
 }
 
 var max_animation_id = 0;
-function AnimationLinear(points, speed, radius) {
+function AnimationLinear(points, speed, radius, colour) {
 	this.points = points;
 	this.speed = speed;
 	this.radius = radius;
@@ -39,7 +49,7 @@ function AnimationLinear(points, speed, radius) {
     pointer.deltaX = 0;
     pointer.deltaY = 0;
     pointer.radius = radius;
-    pointer.color = generateColor();
+    pointer.color = colour;
     pointer.id = ++max_animation_id;
     this.pointer = pointer;
 
@@ -170,6 +180,48 @@ function AnimationParallel(children) {
 }
 
 
+function AnimationInfniteDither(x, y, colour) {
+	this.x = x;
+	this.y = y;
+	this.colour = colour;
+	this.finished = false;
+
+	this.register = function() {
+		this.animation = new AnimationPause(0.1);
+		this.animation.register()
+		animations.add(this);
+	}
+	this.unregister = function() {
+		animations.delete(this);
+		if (animations.contains(this.animations)) {
+			this.animation.unregister();
+		}
+	}
+	this.step = function (dt) {
+		if (!this.animation.finished) 
+			return;
+
+		var n = 1 + Math.ceil(Math.random() * 9);
+		var points = [];
+		for (var i = 0; i < n; ++i) {
+			var x = this.x + (Math.random()-.5) * 0.05;
+			var y = this.y + (Math.random()-.5) * 0.05;
+			points.push(new Point(x, y));
+		}
+		this.animation = new AnimationSequence([
+			new AnimationLinear(
+				points, 
+				0.2 + Math.random() * 0.15, 
+				0.005,
+				this.colour
+			),
+			new AnimationPause(Math.random(0.05))
+		])
+		this.animation.register();
+	}
+}
+
+
 function createNoiseAnimation(x, y, colour) {
 	var n = Math.floor(1 + Math.random() * 2.5);
 	var angle = Math.random() * 2 * Math.PI;
@@ -183,7 +235,8 @@ function createNoiseAnimation(x, y, colour) {
 		anims.push(new AnimationLinear(
 			[new Point(x-dx, y-dy), new Point(x+dx, y+dy)],
 			0.08,
-			0.05
+			0.05,
+			colour
 		))
 		anims.push(new AnimationPause(0.5 * Math.random()))
 	}
@@ -204,7 +257,8 @@ function createAttackAnimation(x, y, colour1, colour2) {
 		anims1.push(new AnimationLinear(
 			[new Point(x-dx, y-dy), new Point(x+dx, y+dy)],
 			0.02 + 0.12 * Math.random(),
-			0.02 + 0.1 * Math.random()
+			0.02 + 0.1 * Math.random(),
+			colour1
 		))
 		anims1.push(new AnimationPause(0.06 * Math.random()));
 	}
@@ -218,12 +272,14 @@ function createAttackAnimation(x, y, colour1, colour2) {
 	anims2.push(new AnimationLinear(
 		[new Point(x-dx, y-dy), new Point(x-dx/4, y-dy/4)],
 		0.8,
-		0.2
+		0.2,
+		colour2
 	))
 	anims2.push(new AnimationLinear(
 		[new Point(x-dx/4, y-dy/4), new Point(x, y)],
 		0.4,
-		0.25
+		0.25,
+		colour2
 	))
 
 	var a = new AnimationParallel([
@@ -234,12 +290,43 @@ function createAttackAnimation(x, y, colour1, colour2) {
 }
 
 
+function createEscapeAnimation(x, y, colour) {
+
+	var d1 = 0.05;
+	var d2 = 0.025
+	var a = new AnimationSequence([
+		new AnimationParallel([
+			new AnimationLinear(
+				[new Point(x, y), new Point(x, y+d1)],
+				0.4,
+				0.2,
+				colourFromHSV(0, 0.1, 1.0)
+			),
+		]),
+		new AnimationPause(0.1),
+		new AnimationLinear(
+			[new Point(x, y), new Point(x, y+d2)],
+			0.015,
+			0.03,
+			colour
+		),
+	]);
+
+
+	a.register();
+}
+
+
+dither = new AnimationInfniteDither(0.6, 0.6, Math.random());
+// dither.register()
+
 document.addEventListener('mousedown', e => {
 
     let x = scaleByPixelRatio(e.offsetX) / canvas.width;
     let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
-    // createNoiseAnimation(x, y, 0);
-    createAttackAnimation(x, y, 0, 0);
+    createNoiseAnimation(x, y, randomColour());
+    createAttackAnimation(x, y, randomColour(), randomColour());
+    // createEscapeAnimation(x, y, randomColour());
     return;
 
 	let a = new AnimationParallel([
