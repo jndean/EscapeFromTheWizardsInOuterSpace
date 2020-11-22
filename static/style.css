@@ -12,47 +12,32 @@ html, body {
 }
 
 .game {
-    height: 100%;
-    width: 100%;
-    max-height: 900px;
-    max-width: 1320px;
+    height: 900px;
+    width: 1700px;
 }
 
 .board {
     position: relative;
     background-color: red;
     float: left;
-    height: 100%;
-    width: 70%;
+}
+
+.board-shaped {
+    height: 900px;
+    width: 1200px;
 }
 
 .sidepanel {
     background-color: green;
-    width: 30%;
+    width: 500px;
     height: 100%;
     float: right;
 }
 
-canvas {
-    width: 80%;
-}
-
-.boardimage {
-    width: 100%;
-    height: 100%;
-    /*
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;*/
-}
 
 .fluidsim {
     position: absolute;
     top: 0;
     left: 0;
-    height: 100%;
-    width: 100%;
     background:transparent;
 }
