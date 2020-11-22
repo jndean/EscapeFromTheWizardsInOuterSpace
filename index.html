@@ -1,60 +1,30 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Wizards</title>
-        <script type="text/javascript" src="dat.gui.min.js"></script>
-        <style>
-
-            html, body {
-                overflow: hidden;
-                background-color: #000;
-            }
-
-            body {
-                margin: 0;
-                width: 100%;
-                height: 100%;
-            }
-
-            canvas {
-                position: absolute;
-                width: 80%;
-                height: 100%;
-            }
-
-            .board {
-                position: relative;
-                height: 800px;
-                width: 1120px;
-            }
-
-            .boardimage {
-                position: absolute;
-                top: 0;
-                left: 0;
-                height: 100%;
-                width: 100%;
-            }
-
-            .fluidsim {
-                position: absolute;
-                top: 0;
-                left: 0;
-                height: 100%;
-                width: 100%;
-                background:transparent;
-            }
-
-
-        </style>
+        <title>Escape from the Wizards in Outer Space</title>
+        <script type="text/javascript" src="static/dat.gui.min.js"></script>
+	    <link rel="stylesheet" href="static/style.css">
     </head>
     <body>
-        <div class="board">
-            <img class="boardimage" src="galilei_map.jpg" height=100%>
-            <canvas class="fluidsim"></canvas>
-        </div>
+    	<div class="centered game">
+	        <!-- <center>
+	          	<div id="join_screen">
+		            <h1>ENTER YOUR NAME</h1> <br>
+		            <input type="text" placeholder="Username" id="username_box">
+		            <input type="submit" value="Join" id="join_button">
+		            <br><font color="white"><div id="msg_box"></div></font>
+	         	</div>
+	      	</center> -->
+	        <div class="board">
+	            <img class="boardimage" src="static/galilei_map.jpg">
+	            <canvas class="fluidsim"></canvas>
+	        </div>
+	        <div class="sidepanel">
+	        </div>
 
-        <script src="./simulation_script.js"></script>
-        <script src="./game.js"></script>
+		</div>
+
+        <script src="./static/simulation_script.js"></script>
+        <script src="./static/animations.js"></script>
     </body>
 </html>

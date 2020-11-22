@@ -30,7 +30,7 @@ const canvas = document.getElementsByTagName('canvas')[0];
 resizeCanvas();
 
 let config = {
-    SIM_RESOLUTION: 128,
+    SIM_RESOLUTION: 256,
     DYE_RESOLUTION: 1024,
     CAPTURE_RESOLUTION: 512,
     DENSITY_DISSIPATION: 1,
@@ -582,7 +582,7 @@ const displayShaderSource = `
     #ifdef BLOOM
         float noise = texture2D(uDithering, vUv * ditherScale).r;
         noise = noise * 2.0 - 1.0;
-        bloom += noise / 255.0;
+        bloom += 0.3 * noise / 255.0;
         bloom = linearToGamma(bloom);
         if (is_wall) bloom *= 0.5;
         c += bloom;
@@ -953,8 +953,9 @@ let bloomFramebuffers = [];
 let sunrays;
 let sunraysTemp;
 
-let ditheringTexture = createTextureAsync('LDR_LLL1_0.png');
-let wallsTexture = createTextureAsync('wall_map.png');
+let ditheringTexture = createTextureAsync('static/LDR_LLL1_0.png');
+let wallsTexture = createTextureAsync('static/wall_map.png');
+let blankTexture = createTextureAsync('static/nowalls.png');
 
 const blurProgram            = new Program(blurVertexShader, blurShader);
 const copyProgram            = new Program(baseVertexShader, copyShader);
@@ -1179,7 +1180,7 @@ function update () {
     stepAnimations(dt);
     applyInputs();
     if (!config.PAUSED)
-        step(dt);
+        step(dt/2);
     render(null);
     requestAnimationFrame(update);
 }
@@ -1527,12 +1528,12 @@ window.addEventListener('mouseup', () => {
 //     }
 // });
 
-window.addEventListener('keydown', e => {
-    if (e.code === 'KeyP')
-        config.PAUSED = !config.PAUSED;
-    if (e.key === ' ')
-        splatStack.push(parseInt(Math.random() * 20) + 5);
-});
+// window.addEventListener('keydown', e => {
+//     if (e.code === 'KeyP')
+//         config.PAUSED = !config.PAUSED;
+//     if (e.key === ' ')
+//         splatStack.push(parseInt(Math.random() * 20) + 5);
+// });
 
 function updatePointerDownData (pointer, id, posX, posY) {
     pointer.id = id;

@@ -211,8 +211,8 @@ function AnimationInfniteDither(x, y, colour) {
 		this.animation = new AnimationSequence([
 			new AnimationLinear(
 				points, 
-				0.2 + Math.random() * 0.15, 
-				0.005,
+				0.05 + Math.random() * 0.05, 
+				0.0008 + Math.random() * 0.0008,
 				this.colour
 			),
 			new AnimationPause(Math.random(0.05))
@@ -317,16 +317,30 @@ function createEscapeAnimation(x, y, colour) {
 }
 
 
-dither = new AnimationInfniteDither(0.6, 0.6, Math.random());
-// dither.register()
+dither = new AnimationInfniteDither(0.2, 0.7, colourFromHue(0));
+dither.register();
+dither = new AnimationInfniteDither(0.4, 0.7, colourFromHue(0.125));
+dither.register();
+dither = new AnimationInfniteDither(0.6, 0.7, colourFromHue(0.25));
+dither.register();
+dither = new AnimationInfniteDither(0.8, 0.7, colourFromHue(0.375));
+dither.register();
+dither = new AnimationInfniteDither(0.2, 0.4, colourFromHue(0.5));
+dither.register();
+dither = new AnimationInfniteDither(0.4, 0.4, colourFromHue(0.625));
+dither.register();
+dither = new AnimationInfniteDither(0.6, 0.4, colourFromHue(0.75));
+dither.register();
+dither = new AnimationInfniteDither(0.8, 0.4, colourFromHue(0.875));
+dither.register();
 
 document.addEventListener('mousedown', e => {
 
     let x = scaleByPixelRatio(e.offsetX) / canvas.width;
     let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
-    createNoiseAnimation(x, y, randomColour());
+    //createNoiseAnimation(x, y, randomColour());
     createAttackAnimation(x, y, randomColour(), randomColour());
-    // createEscapeAnimation(x, y, randomColour());
+    //createEscapeAnimation(x, y, randomColour());
     return;
 
 	let a = new AnimationParallel([

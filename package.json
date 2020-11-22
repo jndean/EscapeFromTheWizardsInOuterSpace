@@ -1,0 +1,9 @@
+{
+  "name": "EscapeFromTheWizardsInOuterSpace",
+  "version": "0.0.1",
+  "description": "Escape from the Wizards in Outer Space",
+  "dependencies": {
+    "express": "^4.17.1",
+    "socket.io": "^3.0.0"
+  }
+}
