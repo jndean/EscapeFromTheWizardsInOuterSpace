@@ -8,15 +8,40 @@
     <body>
     	<div class="centered game">
 	        <div class="board board-shaped">
-	            <img class="board-shaped" src="static/galilei_map.jpg">
-	            <canvas class="fluidsim board-shaped"></canvas>
+	            <div class="board-layer" id="underlay">
+
+	            	<img class="board-layer" id="map_image" src="static/galilei_map.jpg" style="display: none">
+
+	            </div>
+
+	            <canvas class="board-layer"></canvas>
+
+	            <div class="board-layer" id="overlay">
+
+	       
+	            </div>
 	        </div>
-	        <div class="sidepanel">
+
+
+	        <div class="sidepanel" id="sidepanel">
+	        	<div class="textfield lore-field" id="lore_field"></div>
 	        </div>
+
+
+        	<div class="centered" id="join_div"><center>
+        		<input class="textfield" type="text"  id="username_input_field"
+        			autocomplete="off", placeholder="what is your name?">
+        		<button class="button textfield" id="join_button">Join</button>
+    			<br><div class="textfield" id="join_msg_div"></div>
+        	</center></div>
 
 		</div>
 
+	    <script src="/socket.io/socket.io.js"></script>
         <script src="./static/simulation_script.js"></script>
+        <script src="./static/globals.js"></script>
         <script src="./static/animations.js"></script>
+
+        <script src="./static/lobby.js"></script>
     </body>
 </html>

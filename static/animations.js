@@ -2,24 +2,6 @@
 
 
 
-
-// var blinkInterval = setInterval(
-// 	function(){
-// 		multipleSplats(parseInt(Math.random() * 20) + 5);
-// 	},
-// 	10000
-// );
-
-function colourFromHSV (h, s, v) {
-    let c = HSVtoRGB(h, s, v);
-    c.r *= 0.15;
-    c.g *= 0.15;
-    c.b *= 0.15;
-    return c;
-}
-
-function colourFromHue (hue) {return colourFromHSV(hue, 1.0, 1.0)}
-
 function Point(x, y) {
 	this.x = x;
 	this.y = y;
@@ -180,7 +162,7 @@ function AnimationParallel(children) {
 }
 
 
-function AnimationInfniteDither(x, y, colour) {
+function AnimationCharacterDither(x, y, colour) {
 	this.x = x;
 	this.y = y;
 	this.colour = colour;
@@ -193,7 +175,7 @@ function AnimationInfniteDither(x, y, colour) {
 	}
 	this.unregister = function() {
 		animations.delete(this);
-		if (animations.contains(this.animations)) {
+		if (animations.has(this.animations)) {
 			this.animation.unregister();
 		}
 	}
@@ -201,7 +183,7 @@ function AnimationInfniteDither(x, y, colour) {
 		if (!this.animation.finished) 
 			return;
 
-		var n = 1 + Math.ceil(Math.random() * 9);
+		var n = 1 + Math.ceil(Math.random() * 7);
 		var points = [];
 		for (var i = 0; i < n; ++i) {
 			var x = this.x + (Math.random()-.5) * 0.05;
@@ -316,30 +298,16 @@ function createEscapeAnimation(x, y, colour) {
 	a.register();
 }
 
+function startCharacterSelectedAnimation(x, y, colour) {
 
-dither = new AnimationInfniteDither(0.2, 0.7, colourFromHue(0));
-dither.register();
-dither = new AnimationInfniteDither(0.4, 0.7, colourFromHue(0.125));
-dither.register();
-dither = new AnimationInfniteDither(0.6, 0.7, colourFromHue(0.25));
-dither.register();
-dither = new AnimationInfniteDither(0.8, 0.7, colourFromHue(0.375));
-dither.register();
-dither = new AnimationInfniteDither(0.2, 0.4, colourFromHue(0.5));
-dither.register();
-dither = new AnimationInfniteDither(0.4, 0.4, colourFromHue(0.625));
-dither.register();
-dither = new AnimationInfniteDither(0.6, 0.4, colourFromHue(0.75));
-dither.register();
-dither = new AnimationInfniteDither(0.8, 0.4, colourFromHue(0.875));
-dither.register();
+}
 
 document.addEventListener('mousedown', e => {
 
     let x = scaleByPixelRatio(e.offsetX) / canvas.width;
     let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
     //createNoiseAnimation(x, y, randomColour());
-    createAttackAnimation(x, y, randomColour(), randomColour());
+    // createAttackAnimation(x, y, randomColour(), randomColour());
     //createEscapeAnimation(x, y, randomColour());
     return;
 
@@ -357,4 +325,15 @@ document.addEventListener('mousedown', e => {
 	]);
 
 	a.register();
+});
+
+
+var animation_handlers = {};
+socket.on('do_animation', params => {
+	if (player_name == null) return;
+	if (!params['handle'] in animation_handlers) {
+		console.log('Unhandled animation request:' + params['handle']);
+		return;
+	}
+	animation_handlers[params['handle']](params);
 });

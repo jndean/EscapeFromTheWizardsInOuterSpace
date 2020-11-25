@@ -251,7 +251,7 @@ function startGUI () {
     app.domElement.parentElement.appendChild(appIcon);
     appIcon.className = 'icon app';
 
-    if (isMobile())
+    //if (isMobile())
         gui.close();
 }
 
@@ -954,8 +954,10 @@ let sunrays;
 let sunraysTemp;
 
 let ditheringTexture = createTextureAsync('static/LDR_LLL1_0.png');
-let wallsTexture = createTextureAsync('static/wall_map.png');
-let blankTexture = createTextureAsync('static/nowalls.png');
+let noWallsTexture = createTextureAsync('static/nowalls.png');
+let galileiWallsTexture = createTextureAsync('static/wall_map.png');
+let wallsTexture = noWallsTexture;
+
 
 const blurProgram            = new Program(blurVertexShader, blurShader);
 const copyProgram            = new Program(baseVertexShader, copyShader);
@@ -1170,9 +1172,8 @@ initFramebuffers();
 
 let lastUpdateTime = Date.now();
 let colorUpdateTimer = 0.0;
-update();
 
-function update () {
+function update_fluid_sim () {
     const dt = calcDeltaTime();
     if (resizeCanvas())
         initFramebuffers();
@@ -1182,7 +1183,7 @@ function update () {
     if (!config.PAUSED)
         step(dt/2);
     render(null);
-    requestAnimationFrame(update);
+    requestAnimationFrame(update_fluid_sim);
 }
 
 function calcDeltaTime () {
@@ -1482,11 +1483,11 @@ canvas.addEventListener('mousedown', e => {
     updatePointerDownData(mousePointer, -1, posX, posY);
 });
 
-canvas.addEventListener('mousemove', e => {
-    // let pointer = pointers[0];
+overlay.addEventListener('mousemove', e => {
     if (!mousePointer.down) return;
-    let posX = scaleByPixelRatio(e.offsetX);
-    let posY = scaleByPixelRatio(e.offsetY);
+    var bounds = overlay.getBoundingClientRect()
+    let posX = scaleByPixelRatio(e.clientX - bounds.x);
+    let posY = scaleByPixelRatio(e.clientY - bounds.y);
     updatePointerMoveData(mousePointer, posX, posY);
 });
 
@@ -1534,6 +1535,7 @@ window.addEventListener('mouseup', () => {
 //     if (e.key === ' ')
 //         splatStack.push(parseInt(Math.random() * 20) + 5);
 // });
+
 
 function updatePointerDownData (pointer, id, posX, posY) {
     pointer.id = id;
