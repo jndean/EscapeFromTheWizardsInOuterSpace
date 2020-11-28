@@ -25,18 +25,18 @@ socket.on('join_fail', (message) => {
 	join_msg_div.innerHTML = message;
 });
 
-socket.on('join_success', (name) => {
+socket.on('join_lobby', (name) => {
 	player_name = name;
-	hide(join_div);
+	destroy(join_div);
 
 	for (var i = 0; i < 8; ++i) {
 		create_character_selection_box(i);
 	}
 
 	update_fluid_sim();
-	//updatePointerDownData(mousePointer, -1, 0, 0);
-
-
+	lobbyEntranceAnimation();
+	mousePointer.down = true;
+	mousePointer.color = colourFromHSV(0, 0, 0.2);
 });
 
 
@@ -48,20 +48,19 @@ function create_character_selection_box(i) {
 	var a = new AnimationCharacterDither(x, 1-y, COLOURS[i]);
 	a.register();
 
-	var box_rad = 100;
 	var box = document.createElement('div');
 	box.className = 'character-select-box';
-	overlay.appendChild(box);
-	rad = box.clientWidth / 2;
-	var left = Math.floor(x * overlay.clientWidth - rad);
-	var top = Math.floor(y * overlay.clientHeight - rad);
-	box.style.left = left.toString()+'px';
-	box.style.top = top.toString()+'px';
+	var box_width = 160;
+	var box_height = 140;
+	var left = Math.floor(x * overlay.clientWidth);
+	var top = Math.floor(y * overlay.clientHeight - box_height/2);
 
 	var name_box = document.createElement('div');
 	overlay.appendChild(name_box);
-	name_box.style.left = (left + rad).toString()+'px';
-	name_box.style.top = (top - 20).toString()+'px';
+	name_box.style.left = left.toString()+'px';
+	name_box.style.top = top.toString()+'px';
+	name_box.style.width = box_width.toString()+'px';
+	name_box.style.height = box_height.toString()+'px';
 	name_box.style.position = 'absolute';
 	name_box.style.transform = 'translateX(-50%)';
 	name_box.style.fontFamily = 'magic_font';
@@ -73,14 +72,15 @@ function create_character_selection_box(i) {
 
 	character_selection_options.push({
 		animation: a,
-		zone: box,
 		name_box: name_box,
 		taken: false,
 		x: x,
 		y: 1-y
 	});
 
-	box.onclick = function() {
+	name_box.onclick = function() {
+
+		//gameStartAnimation(character_selection_options);
 		var opts = character_selection_options[i];
 		if (opts.taken) return;
 		socket.emit('choose_colour', i);
@@ -94,15 +94,12 @@ socket.on('lobby_state', state => {
 		if (colour in state.colour_to_player) {
 			var name = state.colour_to_player[colour];
 			opt.taken = true;
-			hide(opt.zone);
-			opt.name_box.innerHTML = '<font color="#555">' + ACADEMIC_NAMES[colour] + '</font><br><br><br><br><br>' + name;
+			opt.name_box.innerHTML = '' + ACADEMIC_NAMES[colour] + '<br><br><br><br><br>' + name;
 			if (name == player_name){
-				mousePointer.down = true;
 			    mousePointer.color = COLOURS[colour];
 			}
 		} else {
 			opt.taken = false;
-			show(opt.zone);
 			opt.name_box.innerHTML = ACADEMIC_NAMES[colour];
 		}
 	}
@@ -112,7 +109,9 @@ socket.on('lobby_state', state => {
 
 
 animation_handlers['character_selected'] = function (params) {
-
+	var i = params.character_index;
+	var opt = character_selection_options[i];
+	createCharacterSelectAnimation(opt.x, opt.y, COLOURS[i]);
 }
 
 
@@ -147,3 +146,28 @@ function generate_lobby_text(lobby_state) {
 
 	return txt;
 }
+
+
+function start(map_name='Galilei') {
+	socket.emit('start', map_name);
+}
+
+
+socket.on('start', map_name => {
+	gameStartAnimation(character_selection_options);
+
+	for (opt of character_selection_options) {
+		opt.animation.unregister();
+		destroy(opt.name_box);
+	}
+
+
+	map_image.src = 'static/galilei_map.jpg';
+	show(map_image);
+	map_image.style.animation = 'fadeIn ease 8s';
+
+	setTimeout(() => {wallsTexture = galileiWallsTexture;}, 8000);
+	
+});
+
+

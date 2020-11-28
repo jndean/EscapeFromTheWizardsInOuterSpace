@@ -77,13 +77,13 @@ function AnimationLinear(points, speed, radius, colour) {
     }
 
     this.register = function() {
-    	animations.add(this);
+    	CURRENT_ANIMATIONS.add(this);
     	pointers.add(this.pointer);
     }
 
     this.unregister = function() {
     	pointers.delete(this.pointer);
-    	animations.delete(this);
+    	CURRENT_ANIMATIONS.delete(this);
     }
 
 }
@@ -105,8 +105,8 @@ function AnimationPause(T) {
 		}
 	}
 
-    this.register = () => animations.add(this);
-    this.unregister = () => animations.delete(this);
+    this.register = () => CURRENT_ANIMATIONS.add(this);
+    this.unregister = () => CURRENT_ANIMATIONS.delete(this);
 }
 
 
@@ -133,10 +133,10 @@ function AnimationSequence(children) {
 	}
 
     this.register = function() {
-    	animations.add(this);
+    	CURRENT_ANIMATIONS.add(this);
 		this.children[0].register();
     } 
-    this.unregister = () => animations.delete(this);
+    this.unregister = () => CURRENT_ANIMATIONS.delete(this);
 }
 
 
@@ -155,10 +155,10 @@ function AnimationParallel(children) {
 	}
 
     this.register = function() {
-    	animations.add(this);
+    	CURRENT_ANIMATIONS.add(this);
 		this.children.forEach(c => c.register());
     } 
-    this.unregister = () => animations.delete(this);
+    this.unregister = () => CURRENT_ANIMATIONS.delete(this);
 }
 
 
@@ -171,11 +171,11 @@ function AnimationCharacterDither(x, y, colour) {
 	this.register = function() {
 		this.animation = new AnimationPause(0.1);
 		this.animation.register()
-		animations.add(this);
+		CURRENT_ANIMATIONS.add(this);
 	}
 	this.unregister = function() {
-		animations.delete(this);
-		if (animations.has(this.animations)) {
+		CURRENT_ANIMATIONS.delete(this);
+		if (CURRENT_ANIMATIONS.has(this.animations)) {
 			this.animation.unregister();
 		}
 	}
@@ -197,11 +197,39 @@ function AnimationCharacterDither(x, y, colour) {
 				0.0008 + Math.random() * 0.0008,
 				this.colour
 			),
-			new AnimationPause(Math.random(0.05))
+			new AnimationPause(Math.random() * 0.2)
 		])
 		this.animation.register();
 	}
 }
+
+function createAnimationSpiral(
+	x, y, colour, speed, rad,
+	steps, 
+	start_r, end_r, 
+	start_theta, end_theta,
+	dither=0.01
+) {
+	var points = [];
+	var theta = start_theta;
+	var r = start_r;
+	var d_theta = (end_theta - start_theta) / (steps - 1);
+	var d_r = (end_r - start_r) / (steps - 1);
+
+	for (var i = 0; i < steps; ++i) {
+		points.push(
+			new Point(
+				x + r * Math.sin(theta) + dither * (Math.random() * 2 - 1),
+				y + r * Math.cos(theta) + dither * (Math.random() * 2 - 1)
+			)
+		);
+		r += d_r;
+		theta += d_theta;
+	}
+
+	return new AnimationLinear(points, speed, rad, colour);
+}
+
 
 
 function createNoiseAnimation(x, y, colour) {
@@ -298,8 +326,77 @@ function createEscapeAnimation(x, y, colour) {
 	a.register();
 }
 
-function startCharacterSelectedAnimation(x, y, colour) {
+function createCharacterSelectAnimation(x, y, colour) {
 
+	var n = 2 + Math.random() * 5;
+	var puffs = [];
+	for (var i=0; i<n; ++i) {
+		var speed = 0.1 + 0.3 * Math.random();
+		var d = 0.015 + 0.03 * Math.random();
+		var theta = Math.PI * 2 * Math.random();
+		var rad = 0.005 + 0.03 * Math.random();
+
+		var dx = d * Math.sin(theta);
+		var dy = correctRadius(d * Math.cos(theta));
+
+		puffs.push(new AnimationLinear(
+			[new Point(x, y), new Point(x+dx, y+dy)],
+			speed, rad, colour
+		))
+	}
+	a = new AnimationParallel(puffs);
+	a.register();
+}
+
+
+function gameStartAnimation(char_opts) {
+	var speed = 0.6;
+	var rad = 0.06;
+	var steps = 70;
+	var start_r = 0.0;
+	var end_r = 0.3;
+	var rotations = 1.5;
+
+	var spirals = [];
+	for (var i = 0; i < COLOURS.length; ++i) {
+		var opt = char_opts[i];
+
+		var start_theta = Math.random() * 2 * Math.PI;
+		var end_theta = rotations * ((Math.random() > 0.5) * 2 - 1) * (Math.PI * 2) + start_theta;
+
+		spirals.push(createAnimationSpiral(
+			x=opt.x, 
+			y=opt.y, 
+			colour=COLOURS[i],
+			speed=speed, 
+			rad=rad,
+			steps=steps, 
+			start_r=start_r, end_r=end_r, 
+			start_theta=start_theta, end_theta=end_theta
+		));
+	}
+
+	(new AnimationParallel(spirals)).register();
+}
+
+function lobbyEntranceAnimation() {
+	var num_lines = 4;
+	var rad = 0.8;
+	var speed = 8;
+	var lines = [];
+	for (var i = 0; i < num_lines; ++i) {
+		var x1 = i % 2;
+		var x2 = 1 - x1;
+		var y = ((i + 1) / (num_lines + 1));
+		var colour = colourFromHSV(i / num_lines,0.3,0.05); // colourFromHue(i / num_lines);
+		lines.push(
+			new AnimationLinear(
+				[new Point(x1, y), new Point(x2, y)],
+				speed, rad, colour
+			)
+		)
+	}
+	(new AnimationParallel(lines)).register();
 }
 
 document.addEventListener('mousedown', e => {
@@ -331,9 +428,9 @@ document.addEventListener('mousedown', e => {
 var animation_handlers = {};
 socket.on('do_animation', params => {
 	if (player_name == null) return;
-	if (!params['handle'] in animation_handlers) {
-		console.log('Unhandled animation request:' + params['handle']);
+	if (!params.type in animation_handlers) {
+		console.log('Unhandled animation request:' + params.type);
 		return;
 	}
-	animation_handlers[params['handle']](params);
+	animation_handlers[params.type](params);
 });

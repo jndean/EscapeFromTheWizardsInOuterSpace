@@ -58,7 +58,7 @@ io.on('connection', (socket) => {
 				player_name = new_name;
 				lobby.sockets[player_name] = socket;
 				console.log(player_name + ' joined the lobby');
-				socket.emit('join_success', player_name);
+				socket.emit('join_lobby', player_name);
 				broadcast_lobby_state();
 			}
 		} else {
@@ -87,8 +87,24 @@ io.on('connection', (socket) => {
 		lobby.player_to_colour[player_name] = colour;
 		lobby.taken_colours.add(colour);
 		broadcast_lobby_state();
+		socket.emit('do_animation', {
+			type : 'character_selected', 
+			character_index: colour
+		});
+	});
+
+	socket.on('start', (map_name) => {
+		if (game.phase != 'lobby' || player_name == null) 
+			return;
+		var num_connections = Object.keys(lobby.sockets).length;
+		if (num_connections != lobby.taken_colours.size) {
+			console.log('Can\'t start the game, not all players have a colour')
+			return;
+		}
+		start_new_game(map_name);
 	});
 });
+
 
 server.listen(port, () => {console.log('listening on port ' + port.toString());});
 
@@ -104,4 +120,11 @@ function broadcast_lobby_state() {
 	}
 
 	io.sockets.emit('lobby_state', lobby_state);
+}
+
+
+function start_new_game(map_name) {
+	console.log('Starting game with map: ' + map_name);
+
+	io.sockets.emit('start', map_name);
 }

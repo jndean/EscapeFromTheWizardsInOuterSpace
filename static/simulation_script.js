@@ -75,7 +75,7 @@ let mousePointer = new pointerPrototype();
 let pointers = new Set();
 pointers.add(mousePointer);
 let splatStack = [];
-let animations = new Set();
+let CURRENT_ANIMATIONS = new Set();
 
 const { gl, ext } = getWebGLContext(canvas);
 
@@ -514,8 +514,6 @@ const checkerboardShader = compileShader(gl.FRAGMENT_SHADER, `
 
 
     void main () {
-        //bool is_wall = texture2D(uWalls, vUv).r == 1.0;
-
         gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
     }
 `);
@@ -562,10 +560,10 @@ const displayShaderSource = `
     #endif
 
     bool is_wall = texture2D(uWalls, vUv).r == 1.0;
-    //if (is_wall) {
-        //gl_FragColor = vec4(vec3(0.15), 1.0);
-        //return;
-    //}
+    // if (is_wall) {
+    //     gl_FragColor = vec4(vec3(0.15), 1.0);
+    //     return;
+    // }
 
     #ifdef BLOOM
         vec3 bloom = texture2D(uBloom, vUv).rgb;
@@ -1218,7 +1216,7 @@ function updateColors (dt) {
 }
 
 function stepAnimations(dt) {
-    animations.forEach(a => a.step(dt));
+    CURRENT_ANIMATIONS.forEach(a => a.step(dt));
 }
 
 function applyInputs () {

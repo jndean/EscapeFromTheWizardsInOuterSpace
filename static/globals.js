@@ -4,6 +4,7 @@ var player_name = null;
 
 function show(x) {x.style.display = 'block';}
 function hide(x) {x.style.display = 'none';}
+function destroy(x) {x.parentNode.removeChild(x);}
 
 
 function colourFromHSV (h, s, v) {
