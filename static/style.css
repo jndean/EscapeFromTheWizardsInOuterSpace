@@ -31,6 +31,7 @@ html, body {
     background-color: transparent;
     color: #bbb;
     font-size: 30px;
+    user-select: none;
 }
 
 .game {
@@ -51,32 +52,49 @@ html, body {
     left: 0;
     background: transparent;
     height: 900px;
-    width: 1200px;
+    width: 1300px;
 }
 
 .sidepanel {
     background-color: black;
-    width: 500px;
+    width: 400px;
     height: 100%;
     float: right;
-    /*border-left: 1px groove #bbb;*/
+}
+
+td {
+    padding-top: 40px;
+}
+
+.character-name-box {
+    position: absolute;
+    transform: translateX(-50%);
+    font-family: magic_font;
+    font-size: 20px;
+    color: #bbb;
+    user-select: none;
+    text-align: center;
 }
 
 .lore-field {
     padding: 20px;
     text-align: justify;
     font-size: 23px;
+    border-left: 1px groove #bbb;
 }
-
-.character-select-box {
-    position: absolute;
-    width: 160px;
-    height: 140px;
-}
-
 
 @keyframes fadeIn {
   0% {opacity:0;}
+  100% {opacity:1;}
+}
+
+@keyframes rectifiedFadeIn {
+  0% {opacity:0;}
   20% {opacity:0;}
   100% {opacity:1;}
+}
+
+@keyframes fadeOut {
+  0% {opacity:1;}
+  100% {opacity:0;}
 }

@@ -25,12 +25,12 @@ var COLOURS = [
 ].map(colourFromHue);
 
 var ACADEMIC_NAMES = [
-	'Adeptus Demonic',
-	'Adeptus Mechanical',
-	'Adeptus Natural',
-	'Adeptus Chemical',
-	'Adeptus Historical',
-	'Adeptus Physical',
-	'Adeptus Psionic',
-	'Adeptus Chaotic'
+	'Demonic',
+	'Mechanical',
+	'Natural',
+	'Chemical',
+	'Historical',
+	'Physical',
+	'Psionic',
+	'Chaotic'
 ]

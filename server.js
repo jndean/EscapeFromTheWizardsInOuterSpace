@@ -116,7 +116,8 @@ function broadcast_lobby_state() {
 	};
 	for (name in lobby.sockets) {
 		lobby_state.players.push(name);
-		lobby_state.colour_to_player[lobby.player_to_colour[name]] = name;
+		if (name in lobby.player_to_colour)
+ 			lobby_state.colour_to_player[lobby.player_to_colour[name]] = name;
 	}
 
 	io.sockets.emit('lobby_state', lobby_state);

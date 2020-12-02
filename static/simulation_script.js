@@ -1181,6 +1181,7 @@ function update_fluid_sim () {
     if (!config.PAUSED)
         step(dt/2);
     render(null);
+    // console.log(CURRENT_ANIMATIONS.size);
     requestAnimationFrame(update_fluid_sim);
 }
 

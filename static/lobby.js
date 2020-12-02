@@ -39,6 +39,13 @@ socket.on('join_lobby', (name) => {
 	mousePointer.color = colourFromHSV(0, 0, 0.2);
 });
 
+var tmp_anim = new AnimationLoop(
+	new AnimationLinear(
+		[new Point(0.1, 0.1), new Point(0.9, 0.1), new Point(0.1, 0.1)],
+		0.59, 0.03, colourFromHue(0)
+	)
+);
+
 
 var character_selection_options = [];
 
@@ -51,23 +58,17 @@ function create_character_selection_box(i) {
 	var box = document.createElement('div');
 	box.className = 'character-select-box';
 	var box_width = 160;
-	var box_height = 140;
+	var box_height = 150;
 	var left = Math.floor(x * overlay.clientWidth);
 	var top = Math.floor(y * overlay.clientHeight - box_height/2);
 
 	var name_box = document.createElement('div');
+	name_box.className = "character-name-box";
 	overlay.appendChild(name_box);
 	name_box.style.left = left.toString()+'px';
 	name_box.style.top = top.toString()+'px';
 	name_box.style.width = box_width.toString()+'px';
 	name_box.style.height = box_height.toString()+'px';
-	name_box.style.position = 'absolute';
-	name_box.style.transform = 'translateX(-50%)';
-	name_box.style.fontFamily = 'magic_font';
-	name_box.style.fontSize = '20px';
-	name_box.style.color = '#bbb';
-	name_box.style.userSelect = 'none';
-	name_box.style.textAlign = 'center';
 	name_box.innerHTML = ACADEMIC_NAMES[i];
 
 	character_selection_options.push({
@@ -81,6 +82,10 @@ function create_character_selection_box(i) {
 	name_box.onclick = function() {
 
 		//gameStartAnimation(character_selection_options);
+		tmp_anim.reset();
+		if (!tmp_anim.registered) {
+			tmp_anim.register();
+		}
 		var opts = character_selection_options[i];
 		if (opts.taken) return;
 		socket.emit('choose_colour', i);
@@ -94,13 +99,13 @@ socket.on('lobby_state', state => {
 		if (colour in state.colour_to_player) {
 			var name = state.colour_to_player[colour];
 			opt.taken = true;
-			opt.name_box.innerHTML = '' + ACADEMIC_NAMES[colour] + '<br><br><br><br><br>' + name;
+			opt.name_box.innerHTML = 'Adeptus ' + ACADEMIC_NAMES[colour] + '<br><br><br><br><br><br>' + name;
 			if (name == player_name){
 			    mousePointer.color = COLOURS[colour];
 			}
 		} else {
 			opt.taken = false;
-			opt.name_box.innerHTML = ACADEMIC_NAMES[colour];
+			opt.name_box.innerHTML = 'Adeptus ' + ACADEMIC_NAMES[colour];
 		}
 	}
 
@@ -130,14 +135,15 @@ function generate_lobby_text(lobby_state) {
 		player_to_title[name] = null;
 	}
 	for (i in lobby_state.colour_to_player) {
-		var title = ACADEMIC_NAMES[i];
-		player_to_title[lobby_state.colour_to_player[i]] = title;
+		player_to_title[lobby_state.colour_to_player[i]] = ACADEMIC_NAMES[i];
 	}
 
 	for (name in player_to_title) {
 		var title = player_to_title[name];
-		if (title != null) txt += title + ' ';
-		txt += name + '<br>';
+		if (title != null) txt += 'Adeptus ' + title + ' ';
+		txt += name + ' - ';
+		if (title != null) txt += '<img src="static/symbols/' + title + '.png", style="width: 30px; height: 30px">';
+		txt += '<br>';
 	}
 
 	txt += '<br></center>Make certain you are not followed."</font></i><br><br>\
@@ -164,10 +170,12 @@ socket.on('start', map_name => {
 
 	map_image.src = 'static/galilei_map.jpg';
 	show(map_image);
-	map_image.style.animation = 'fadeIn ease 8s';
-
+	map_image.style.animation = 'rectifiedFadeIn ease 8s';
 	setTimeout(() => {wallsTexture = galileiWallsTexture;}, 8000);
 	
+	lore_field.style.animation = 'fadeOut ease 4s';
+	setTimeout(() => {destroy(lore_field); setupGame();}, 4000);
+
 });
 
 

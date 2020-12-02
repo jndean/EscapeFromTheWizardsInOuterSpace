@@ -1,7 +1,5 @@
 
 
-
-
 function Point(x, y) {
 	this.x = x;
 	this.y = y;
@@ -12,28 +10,19 @@ function Point(x, y) {
 	}
 }
 
-var max_animation_id = 0;
+
 function AnimationLinear(points, speed, radius, colour) {
 	this.points = points;
 	this.speed = speed;
 	this.radius = radius;
-	this.current_point = 0;
-	this.current_progress = 0.0;
-	this.finished = false;
 
-	pointer = new pointerPrototype()
-	pointer.down = true;
-	pointer.moved = true;
-    pointer.texcoordX = points[0].x;
-    pointer.texcoordY = points[0].y;
-    pointer.prevTexcoordX = pointer.texcoordX;
-    pointer.prevTexcoordY = pointer.texcoordY;
-    pointer.deltaX = 0;
-    pointer.deltaY = 0;
-    pointer.radius = radius;
-    pointer.color = colour;
-    pointer.id = ++max_animation_id;
-    this.pointer = pointer;
+	this.pointer = new pointerPrototype()
+    this.pointer.color = colour;
+	this.pointer.down = true;
+	this.pointer.moved = true;
+    this.pointer.radius = radius;
+
+	this.registered = false;
 
     this.segment_lengths = [];
     for (var i = 0; i < points.length - 1; i++) {
@@ -41,6 +30,20 @@ function AnimationLinear(points, speed, radius, colour) {
     		points[i].distance_to(points[i+1])
     	);
     }
+
+    this.reset = function() {
+		this.current_point = 0;
+		this.current_progress = 0.0;
+		this.finished = false;
+
+	    this.pointer.texcoordX = points[0].x;
+	    this.pointer.texcoordY = points[0].y;
+	    this.pointer.prevTexcoordX = this.pointer.texcoordX;
+	    this.pointer.prevTexcoordY = this.pointer.texcoordY;
+	    this.pointer.deltaX = 0;
+	    this.pointer.deltaY = 0;
+    }
+    this.reset();
 
     this.step = function(dt) {
     	if (this.finished) {
@@ -79,11 +82,15 @@ function AnimationLinear(points, speed, radius, colour) {
     this.register = function() {
     	CURRENT_ANIMATIONS.add(this);
     	pointers.add(this.pointer);
+    	this.registered = true;
     }
 
     this.unregister = function() {
-    	pointers.delete(this.pointer);
-    	CURRENT_ANIMATIONS.delete(this);
+    	if (pointers.has(this.pointer))
+	    	pointers.delete(this.pointer);
+	    if (CURRENT_ANIMATIONS.has(this))
+	    	CURRENT_ANIMATIONS.delete(this);
+	    this.registered = false;
     }
 
 }
@@ -91,8 +98,13 @@ function AnimationLinear(points, speed, radius, colour) {
 
 function AnimationPause(T) {
 	this.T = T;
-	this.t = 0.0;
-	this.finished = (T <= 0);
+	this.registered = false;
+
+	this.reset = function() {
+		this.t = 0.0;
+		this.finished = (T <= 0);
+	}
+	this.reset();
 
 	this.step = function(dt) {
 		if (this.finished) {
@@ -105,15 +117,32 @@ function AnimationPause(T) {
 		}
 	}
 
-    this.register = () => CURRENT_ANIMATIONS.add(this);
-    this.unregister = () => CURRENT_ANIMATIONS.delete(this);
+    this.register = () => {
+    	CURRENT_ANIMATIONS.add(this);
+    	this.registered = true;
+    }
+    this.unregister = () => {
+    	if (CURRENT_ANIMATIONS.has(this))
+	    	CURRENT_ANIMATIONS.delete(this);
+    	this.registered = false;
+    }
 }
 
 
 function AnimationSequence(children) {
 	this.children = children;
-	this.current = 0;
-	this.finished = (children.length == 0);
+	this.registered = false;
+
+	this.reset = function () {
+		this.current = -1;
+		this.finished = (children.length == 0);
+		for (child of this.children) {
+			if (child.registered)
+				child.unregister();
+			child.reset();
+		}
+	}
+	this.reset()
 
 	this.step = function(dt) {
 		if (this.finished) {
@@ -121,8 +150,7 @@ function AnimationSequence(children) {
 			return;
 		}
 
-		var a = this.children[this.current];
-		if (a.finished) {
+		if (this.current == -1 || this.children[this.current].finished) {
 			this.current += 1;
 			if (this.current == this.children.length) {
 				this.finished = true;
@@ -134,15 +162,37 @@ function AnimationSequence(children) {
 
     this.register = function() {
     	CURRENT_ANIMATIONS.add(this);
-		this.children[0].register();
+    	this.registered = true;
     } 
-    this.unregister = () => CURRENT_ANIMATIONS.delete(this);
+    this.unregister = () => {
+    	if (CURRENT_ANIMATIONS.has(this))
+	    	CURRENT_ANIMATIONS.delete(this);
+	    if (!this.finished) {
+	    	for (child of this.children) {
+	    		if (child.registered) {
+	    			child.unregister();
+	    		}
+	    	}
+	    }
+    	this.registered = false;
+    }
 }
 
 
 function AnimationParallel(children) {
 	this.children = children;
-	this.finished = (children.length == 0);
+	this.registered = false;
+
+	this.reset = function() {
+		this.finished = (children.length == 0);
+		for (child of this.children) {
+			if (this.registered && !child.registered) {
+				child.register();
+			}
+			child.reset();
+		}
+	}
+	this.reset();
 
 	this.step = function(dt) {
 		if (this.finished) {
@@ -157,8 +207,61 @@ function AnimationParallel(children) {
     this.register = function() {
     	CURRENT_ANIMATIONS.add(this);
 		this.children.forEach(c => c.register());
+		this.registered = true;
     } 
-    this.unregister = () => CURRENT_ANIMATIONS.delete(this);
+    this.unregister = () => {
+    	if (CURRENT_ANIMATIONS.has(this))
+	    	CURRENT_ANIMATIONS.delete(this);
+	    if (!this.finished) {
+	    	for (child of this.children) {
+	    		if (child.registered) {
+	    			child.unregister()
+	    		}
+	    	}
+	    }
+	    this.registered = false;
+    }
+}
+
+
+function AnimationLoop(animation, repetitions=-1) {
+	this.animation = animation;
+	this.repetitions = repetitions;
+	this.inifinite = (this.repetitions == -1);
+	this.finished = false;
+
+	this.reset = function() {
+		this.animation.reset();
+		if (this.infinite) return;
+		this.finished = (this.repetitions == 0);
+		this.count = 0;
+	}
+
+	this.register = function() {
+		CURRENT_ANIMATIONS.add(this);
+		this.animation.register();
+		this.registered = true;
+	}
+
+	this.unregister = function() {
+		if (CURRENT_ANIMATIONS.has(this))
+			CURRENT_ANIMATIONS.delete(this);
+		if (this.animation.registered)
+			this.animation.unregister()
+		this.registered = false;
+	}
+
+	this.step = function() {
+		if (!this.animation.finished || this.animation.registered) 
+			return;
+		if (this.infinite || ++this.count < this.repetitions) {
+			this.animation.reset();
+			this.animation.register();
+		} else if (this.count >= this.repetitions) {
+			this.finished = true;
+			this.unregister();
+		}
+	}
 }
 
 
@@ -167,18 +270,26 @@ function AnimationCharacterDither(x, y, colour) {
 	this.y = y;
 	this.colour = colour;
 	this.finished = false;
+	this.registered = false;
+	this.animation = new AnimationPause(0.0001);
+
+	this.reset = () => {};
 
 	this.register = function() {
-		this.animation = new AnimationPause(0.1);
 		this.animation.register()
 		CURRENT_ANIMATIONS.add(this);
+		this.registered = true;
 	}
+
 	this.unregister = function() {
-		CURRENT_ANIMATIONS.delete(this);
-		if (CURRENT_ANIMATIONS.has(this.animations)) {
+		if (CURRENT_ANIMATIONS.has(this))
+			CURRENT_ANIMATIONS.delete(this);
+		if (CURRENT_ANIMATIONS.has(this.animation)) {
 			this.animation.unregister();
 		}
+		this.registered = false;
 	}
+
 	this.step = function (dt) {
 		if (!this.animation.finished) 
 			return;
@@ -379,24 +490,33 @@ function gameStartAnimation(char_opts) {
 	(new AnimationParallel(spirals)).register();
 }
 
+
 function lobbyEntranceAnimation() {
-	var num_lines = 4;
-	var rad = 0.8;
-	var speed = 8;
-	var lines = [];
-	for (var i = 0; i < num_lines; ++i) {
-		var x1 = i % 2;
-		var x2 = 1 - x1;
-		var y = ((i + 1) / (num_lines + 1));
-		var colour = colourFromHSV(i / num_lines,0.3,0.05); // colourFromHue(i / num_lines);
-		lines.push(
-			new AnimationLinear(
-				[new Point(x1, y), new Point(x2, y)],
-				speed, rad, colour
-			)
-		)
-	}
-	(new AnimationParallel(lines)).register();
+	var rad = 0.6;
+	var speed = 0.01;
+	var colour = colourFromHSV(0, 0, 0);
+
+	new AnimationParallel([
+		new AnimationLinear(
+			[new Point(0.9, 0.9), new Point(0.1, 0.9), new Point(0.9, 0.9)],
+			speed, rad, colour
+		),
+		new AnimationLinear(
+			[new Point(0.1, 0.5), new Point(0.9, 0.5), new Point(0.1, 0.5)],
+			speed, rad, colour
+		),
+		new AnimationLinear(
+			[
+				new Point(0.5, 0.1), 
+				new Point(0.1, 0.1), 
+				new Point(0.9, 0.1),
+				new Point(0.5, 0.1), 
+			],
+			speed, rad, colour
+		),
+	]).register()
+
+	return;
 }
 
 document.addEventListener('mousedown', e => {
