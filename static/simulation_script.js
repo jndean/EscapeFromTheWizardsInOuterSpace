@@ -26,8 +26,7 @@ SOFTWARE.
 
 // Simulation section
 
-const canvas = document.getElementsByTagName('canvas')[0];
-resizeCanvas();
+const canvas = document.getElementById('simulation_canvas');
 
 let config = {
     SIM_RESOLUTION: 256,
@@ -952,8 +951,8 @@ let sunrays;
 let sunraysTemp;
 
 let ditheringTexture = createTextureAsync('static/LDR_LLL1_0.png');
-let noWallsTexture = createTextureAsync('static/nowalls.png');
-let galileiWallsTexture = createTextureAsync('static/wall_map.png');
+let noWallsTexture = createTextureAsync('static/maps/no_walls.png');
+let galileiWallsTexture = createTextureAsync('static/maps/galilei_walls.png');
 let wallsTexture = noWallsTexture;
 
 

@@ -1,1 +1,5 @@
 *.jpg
+working_images
+node_modules
+static/symbols
+static/maps

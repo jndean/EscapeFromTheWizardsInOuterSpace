@@ -227,7 +227,7 @@ function AnimationParallel(children) {
 function AnimationLoop(animation, repetitions=-1) {
 	this.animation = animation;
 	this.repetitions = repetitions;
-	this.inifinite = (this.repetitions == -1);
+	this.infinite = (this.repetitions == -1);
 	this.finished = false;
 
 	this.reset = function() {
@@ -491,32 +491,30 @@ function gameStartAnimation(char_opts) {
 }
 
 
-function lobbyEntranceAnimation() {
+function createLobbyCurrentsAnimation() {
 	var rad = 0.6;
 	var speed = 0.01;
 	var colour = colourFromHSV(0, 0, 0);
 
-	new AnimationParallel([
-		new AnimationLinear(
-			[new Point(0.9, 0.9), new Point(0.1, 0.9), new Point(0.9, 0.9)],
-			speed, rad, colour
-		),
-		new AnimationLinear(
-			[new Point(0.1, 0.5), new Point(0.9, 0.5), new Point(0.1, 0.5)],
-			speed, rad, colour
-		),
-		new AnimationLinear(
-			[
-				new Point(0.5, 0.1), 
-				new Point(0.1, 0.1), 
-				new Point(0.9, 0.1),
-				new Point(0.5, 0.1), 
-			],
-			speed, rad, colour
-		),
-	]).register()
-
-	return;
+	return new AnimationLoop(
+		new AnimationParallel([
+			new AnimationLinear(
+				[new Point(0.9, 0.9), new Point(0.1, 0.9), new Point(0.9, 0.9)],
+				speed, rad, colour
+			),
+			new AnimationLinear(
+				[new Point(0.1, 0.5), new Point(0.9, 0.5), new Point(0.1, 0.5)],
+				speed, rad, colour
+			),
+			new AnimationLinear(
+				[new Point(0.5, 0.1), 
+				 new Point(0.1, 0.1), 
+				 new Point(0.9, 0.1),
+				 new Point(0.5, 0.1)],
+				speed, rad, colour
+			),
+		])
+	);
 }
 
 document.addEventListener('mousedown', e => {

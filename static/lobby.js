@@ -1,6 +1,8 @@
 
-
+var character_selection_options = [];
+var lobbyFluidCurrentsAnimation = createLobbyCurrentsAnimation();
 var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-!?#[]~:.,$";
+
 
 join_button.onclick = function() {
 	var name = username_input_field.value;
@@ -34,20 +36,12 @@ socket.on('join_lobby', (name) => {
 	}
 
 	update_fluid_sim();
-	lobbyEntranceAnimation();
+	lobbyFluidCurrentsAnimation.register();
 	mousePointer.down = true;
 	mousePointer.color = colourFromHSV(0, 0, 0.2);
 });
 
-var tmp_anim = new AnimationLoop(
-	new AnimationLinear(
-		[new Point(0.1, 0.1), new Point(0.9, 0.1), new Point(0.1, 0.1)],
-		0.59, 0.03, colourFromHue(0)
-	)
-);
 
-
-var character_selection_options = [];
 
 function create_character_selection_box(i) {
 	var x = (1 + i % 4) / 5
@@ -80,12 +74,6 @@ function create_character_selection_box(i) {
 	});
 
 	name_box.onclick = function() {
-
-		//gameStartAnimation(character_selection_options);
-		tmp_anim.reset();
-		if (!tmp_anim.registered) {
-			tmp_anim.register();
-		}
 		var opts = character_selection_options[i];
 		if (opts.taken) return;
 		socket.emit('choose_colour', i);
@@ -160,6 +148,8 @@ function start(map_name='Galilei') {
 
 
 socket.on('start', map_name => {
+	lobbyFluidCurrentsAnimation.unregister();
+	lobbyFluidCurrentsAnimation = null;
 	gameStartAnimation(character_selection_options);
 
 	for (opt of character_selection_options) {
@@ -167,8 +157,7 @@ socket.on('start', map_name => {
 		destroy(opt.name_box);
 	}
 
-
-	map_image.src = 'static/galilei_map.jpg';
+	map_image.src = 'static/maps/galilei_map.jpg';
 	show(map_image);
 	map_image.style.animation = 'rectifiedFadeIn ease 8s';
 	setTimeout(() => {wallsTexture = galileiWallsTexture;}, 8000);

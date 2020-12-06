@@ -10,11 +10,12 @@
 	        <div class="board board-shaped">
 	            <div class="board-layer" id="underlay">
 
-	            	<img class="board-layer" id="map_image" src="static/galilei_map.jpg" style="display: none">
+	            	<img class="board-layer" id="map_image" style="display: none">
+	            	<canvas class="board-layer" id="map_canvas"></canvas>
 
 	            </div>
 
-	            <canvas class="board-layer"></canvas>
+	            <canvas class="board-layer" id="simulation_canvas"></canvas>
 
 	            <div class="board-layer" id="overlay">
 
@@ -70,6 +71,7 @@
         <script src="./static/globals.js"></script>
         <script src="./static/animations.js"></script>
         <script src="./static/game.js"></script>
+        <script src="./static/board.js"></script>
         <script src="./static/lobby.js"></script>
     </body>
 </html>

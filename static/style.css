@@ -35,8 +35,8 @@ html, body {
 }
 
 .game {
-    height: 900px;
-    width: 1700px;
+    height: 910px;
+    width: 1660px;
     /*border: 1px groove #bbb;*/
 }
 
@@ -51,9 +51,10 @@ html, body {
     top: 0;
     left: 0;
     background: transparent;
-    height: 900px;
-    width: 1300px;
+    height: 910px;
+    width: 1260px;
 }
+
 
 .sidepanel {
     background-color: black;
