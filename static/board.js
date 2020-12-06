@@ -16,17 +16,11 @@ const HEX_Y_START = 13;
 const HEX_X_START = 18;
 
 
+map_canvas.style.backgroundColor = '#686f82'
 for (var y=0; y<14; ++y) {
 	for (var x=0; x<23; ++x) {
 		(new GridCell(y, x)).draw_base();
 	}
-}
-
-function hexXY(row, column) {
-	var y = HEX_Y_START + row * HEX_RECT_HEIGHT;
-	if (column % 2) y += HEX_RAD;
-	
-	return (x, y);
 }
 
 
@@ -34,17 +28,19 @@ function Board() {
 
 }
 
-function GridCell(row, column, type) {
+
+function GridCell(row, column, is_Wall=false, is_safe=false) {
 	this.row = row;
 	this.col = column;
-	this.type = type;
 	this.id = row.toString() + ',' + column.toString();
 	this.x = HEX_X_START + column * (HEX_SIDE + HEX_WIDTH);
 	this.y = HEX_Y_START + row * HEX_RECT_HEIGHT;
 	if (column % 2) this.y += HEX_RAD;
 
-	this.draw = function(ctx, fill, line_colour, line_width) {
-	    ctx.strokeStyle = line_colour;
+	this.is_wall = GALILEI_WALLS_BY_COL[column].includes(row+1);
+	this.is_safe = GALILEI_SAFE_BY_COL[column].includes(row+1);
+
+	this.draw = function(ctx, fill, line, line_width) {
 	    ctx.lineWidth = line_width;
 
 		ctx.beginPath();
@@ -60,15 +56,26 @@ function GridCell(row, column, type) {
 	    	ctx.fillStyle = fill;
 			ctx.fill();
 	    }
-		ctx.stroke();
+	    if (line != null) {
+	    	ctx.strokeStyle = line;
+			ctx.stroke();
+	    }
 	}
 
 	this.draw_base = function() {
+		if (this.is_wall) return;
+		var fill = '#000000';
+		var line = '#aaaaaa';
+		var line_width = 0.2;
+		if (this.is_safe) {
+			line_width = 0.3;
+			fill = '#222234';
+		}
 		this.draw(
 			map_canvas_ctx,
-			fill=null, // '#332244',
-			line_colour='#CCCCCC',
-			line_width=1
+			fill,
+			line,
+			line_width
 		);
 	}
 
