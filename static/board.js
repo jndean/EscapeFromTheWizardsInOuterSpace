@@ -16,12 +16,12 @@ const HEX_Y_START = 13;
 const HEX_X_START = 18;
 
 
-map_canvas.style.backgroundColor = '#686f82'
-for (var y=0; y<14; ++y) {
-	for (var x=0; x<23; ++x) {
-		(new GridCell(y, x)).draw_base();
-	}
-}
+// map_canvas.style.backgroundColor = '#777777'
+// for (var y=0; y<14; ++y) {
+// 	for (var x=0; x<23; ++x) {
+// 		(new GridCell(y, x)).draw_base();
+// 	}
+// }
 
 
 function Board() {
@@ -29,7 +29,7 @@ function Board() {
 }
 
 
-function GridCell(row, column, is_Wall=false, is_safe=false) {
+function GridCell(row, column, is_wall=false, is_safe=false) {
 	this.row = row;
 	this.col = column;
 	this.id = row.toString() + ',' + column.toString();
@@ -69,7 +69,7 @@ function GridCell(row, column, is_Wall=false, is_safe=false) {
 		var line_width = 0.2;
 		if (this.is_safe) {
 			line_width = 0.3;
-			fill = '#222234';
+			fill = '#292929';
 		}
 		this.draw(
 			map_canvas_ctx,

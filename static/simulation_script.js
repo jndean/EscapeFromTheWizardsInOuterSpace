@@ -581,7 +581,7 @@ const displayShaderSource = `
         noise = noise * 2.0 - 1.0;
         bloom += 0.3 * noise / 255.0;
         bloom = linearToGamma(bloom);
-        if (is_wall) bloom *= 0.5;
+        //if (is_wall) bloom *= 0.5;
         c += bloom;
     #endif
 

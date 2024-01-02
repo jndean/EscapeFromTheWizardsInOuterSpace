@@ -23,6 +23,9 @@ function colourFromHue (hue) {
 var COLOURS = [
 	0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875
 ].map(colourFromHue);
+// var COLOURS = [
+// 	0, 238/360, 25/360, 58/360, 220/360, 172/360, 103/360, 298/360
+// ].map(colourFromHue);
 
 var ACADEMIC_NAMES = [
 	'Demonic',

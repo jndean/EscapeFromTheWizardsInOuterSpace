@@ -129,8 +129,8 @@ function generate_lobby_text(lobby_state) {
 	for (name in player_to_title) {
 		var title = player_to_title[name];
 		if (title != null) txt += 'Adeptus ' + title + ' ';
-		txt += name + ' - ';
-		if (title != null) txt += '<img src="static/symbols/' + title + '.png", style="width: 30px; height: 30px">';
+		txt += name + ' <font color=black>-</font> ';
+		if (title != null) txt += '<img src="static/symbols/' + title + '.png", style="width: 20px; height: 20px">';
 		txt += '<br>';
 	}
 
@@ -157,7 +157,7 @@ socket.on('start', map_name => {
 		destroy(opt.name_box);
 	}
 
-	map_image.src = 'static/maps/galilei_map.jpg';
+	map_image.src = 'static/maps/galilei_map_colour.png';
 	show(map_image);
 	map_image.style.animation = 'rectifiedFadeIn ease 8s';
 	setTimeout(() => {wallsTexture = galileiWallsTexture;}, 8000);

@@ -127,5 +127,13 @@ function broadcast_lobby_state() {
 function start_new_game(map_name) {
 	console.log('Starting game with map: ' + map_name);
 
+	/*for (const [name, colour] of Object(entries(lobby.player_to_colour))) {
+		game.players.push({
+			name: name,
+			colour_index: colour,
+			position:
+		});
+	}*/
+
 	io.sockets.emit('start', map_name);
 }
