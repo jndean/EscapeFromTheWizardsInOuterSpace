@@ -378,14 +378,14 @@ function createAttackAnimation(x, y, colour1, colour2) {
 		anims1.push(new AnimationLinear(
 			[new Point(x-dx, y-dy), new Point(x+dx, y+dy)],
 			0.02 + 0.12 * Math.random(),
-			0.02 + 0.1 * Math.random(),
+			0.01 + 0.06 * Math.random(),
 			colour1
 		))
 		anims1.push(new AnimationPause(0.06 * Math.random()));
 	}
 
 	var anims2 = [];
-	anims2.push(new AnimationPause(0.1 + 0.3 * Math.random()));
+	anims2.push(new AnimationPause(0.4 + 0.5 * Math.random()));
 
 	d = 0.3;
 	dx = d * Math.sin(angle - Math.PI);

@@ -160,7 +160,7 @@ socket.on('start', map_name => {
 	map_image.src = 'static/maps/galilei_map_colour.png';
 	show(map_image);
 	map_image.style.animation = 'rectifiedFadeIn ease 8s';
-	setTimeout(() => {wallsTexture = galileiWallsTexture;}, 8000);
+	setTimeout(() => {wallsTexture = galileiWallsTexture;}, 0);
 	
 	lore_field.style.animation = 'fadeOut ease 4s';
 	setTimeout(() => {destroy(lore_field); setupGame();}, 4000);

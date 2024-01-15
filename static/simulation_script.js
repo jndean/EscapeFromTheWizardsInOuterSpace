@@ -32,7 +32,7 @@ let config = {
     SIM_RESOLUTION: 256,
     DYE_RESOLUTION: 1024,
     CAPTURE_RESOLUTION: 512,
-    DENSITY_DISSIPATION: 1,
+    DENSITY_DISSIPATION: 0.4,
     VELOCITY_DISSIPATION: 0.2,
     PRESSURE: 0.8,
     PRESSURE_ITERATIONS: 20,
@@ -49,7 +49,7 @@ let config = {
     BLOOM_ITERATIONS: 8,
     BLOOM_RESOLUTION: 256,
     BLOOM_INTENSITY: 0.8,
-    BLOOM_THRESHOLD: 0.6,
+    BLOOM_THRESHOLD: 0.8,
     BLOOM_SOFT_KNEE: 0.7,
     SUNRAYS: true,
     SUNRAYS_RESOLUTION: 196,
@@ -716,6 +716,7 @@ const splatShader = compileShader(gl.FRAGMENT_SHADER, `
 
     varying vec2 vUv;
     uniform sampler2D uTarget;
+    uniform sampler2D uWalls;
     uniform float aspectRatio;
     uniform vec3 color;
     uniform vec2 point;
@@ -724,9 +725,15 @@ const splatShader = compileShader(gl.FRAGMENT_SHADER, `
     void main () {
         vec2 p = vUv - point.xy;
         p.x *= aspectRatio;
-        vec3 splat = exp(-dot(p, p) / radius) * color;
         vec3 base = texture2D(uTarget, vUv).xyz;
-        gl_FragColor = vec4(base + splat, 1.0);
+        float splatAlpha = exp(-dot(p, p) / radius);
+
+        bool is_wall = texture2D(uWalls, vUv).r == 1.0;
+        if (is_wall) {
+            gl_FragColor = vec4(base + vec3(splatAlpha * 0.03), 1.0);
+        } else {
+            gl_FragColor = vec4(base + splatAlpha * color, 1.0);
+        }
     }
 `);
 
@@ -770,7 +777,8 @@ const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
 
         bool is_wall = texture2D(uWalls, vUv).r == 1.0;
         if (is_wall) {
-            gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            // gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+            gl_FragColor *= 0.3;
         }
     }`,
     ext.supportLinearFiltering ? null : ['MANUAL_FILTERING']
@@ -1452,6 +1460,7 @@ function multipleSplats (amount) {
 function splat (x, y, dx, dy, radius, color) {
     splatProgram.bind();
     gl.uniform1i(splatProgram.uniforms.uTarget, velocity.read.attach(0));
+    gl.uniform1i(splatProgram.uniforms.uWalls, wallsTexture.attach(1));
     gl.uniform1f(splatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
     gl.uniform2f(splatProgram.uniforms.point, x, y);
     gl.uniform3f(splatProgram.uniforms.color, dx, dy, 0.0);
@@ -1481,12 +1490,101 @@ canvas.addEventListener('mousedown', e => {
     updatePointerDownData(mousePointer, -1, posX, posY);
 });
 
+let mouseX = undefined;
+let mouseY = undefined;
+
 overlay.addEventListener('mousemove', e => {
     if (!mousePointer.down) return;
     var bounds = overlay.getBoundingClientRect()
-    let posX = scaleByPixelRatio(e.clientX - bounds.x);
-    let posY = scaleByPixelRatio(e.clientY - bounds.y);
-    updatePointerMoveData(mousePointer, posX, posY);
+    let screenPosX = scaleByPixelRatio(e.clientX - bounds.x);
+    let screenPosY = scaleByPixelRatio(e.clientY - bounds.y); 
+
+    let destX = screenPosX / canvas.width;
+    let destY = 1.0 - screenPosY / canvas.height;
+    if (mouseX === undefined) {
+        mouseX = destX;
+        mouseY = destY;
+        return;
+    }
+
+    let deltaX = correctDeltaX(destX - mouseX);
+    let deltaY = correctDeltaY(destY - mouseY);
+    let delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    // if (delta > 0.1) { // Moved too far to interpolate
+    //     mouseX = destX;
+    //     mouseY = destY;
+    //     return;
+    // }
+    
+    if(delta < 0.005) { // Slow movement thresh
+        splat(
+            destX , destY, 
+            deltaX * config.SPLAT_FORCE, 
+            deltaY * config.SPLAT_FORCE,
+            mousePointer.radius, mousePointer.color
+        );
+        mouseX = destX;
+        mouseY = destY;
+        return;
+    }
+        
+    const spacing = 0.001;
+    while(delta > spacing) {
+        let frac = spacing / delta;
+        let dX = frac * deltaX * (Math.random() * 3);
+        let dY = frac * deltaY * (Math.random() * 3);
+        mouseX += dX;
+        mouseY += dY;
+
+        splat(
+            mouseX, mouseY, 
+            dX * config.SPLAT_FORCE * 20, 
+            dY * config.SPLAT_FORCE * 20,
+            mousePointer.radius * 0.15, mousePointer.color
+        );
+        
+        deltaX = correctDeltaX(destX - mouseX);
+        deltaY = correctDeltaY(destY - mouseY);
+        delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+
+
+    // return; 
+
+    //  // Smooth movement
+    //  let delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    //  if (delta > 0.1) {
+    //     updatePointerMoveData(mousePointer, screenPosX, screenPosY);
+    //     mousePointer.moved = false;
+    //     return;
+    //  }
+    //  if (delta < thresh) {
+    //     updatePointerMoveData(mousePointer, screenPosX, screenPosY);
+    //     return;
+    //  }
+
+    // while (delta > 0) {
+    //     let frac = thresh / delta;
+    //     let dX = frac * deltaX;
+    //     let dY = frac * deltaY;
+    //     texcoordX += dX;
+    //     texcoordY += dY;
+    //     deltaX -= dX;
+    //     deltaY -= dY;
+    //     splat(
+    //         texcoordX , texcoordY, 
+    //         dX * config.SPLAT_FORCE * 10, 
+    //         dY * frac * config.SPLAT_FORCE * 10,
+    //         mousePointer.radius * 0.2, mousePointer.color
+    //     );
+    //     delta -= thresh;
+    // }
+     
+    // // mousePointer.prevTexcoordX = texcoordX;
+    // // mousePointer.prevTexcoordY = texcoordY;
+    // updatePointerMoveData(mousePointer, screenPosX, screenPosY);
+    // // mousePointer.moved = false;
+
 });
 
 window.addEventListener('mouseup', () => {
