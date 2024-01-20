@@ -19,7 +19,8 @@ app.get('/', (req, res) => {
 var game = {
 	phase: 'lobby',
 	sockets: {},
-	players: [],
+	players: {},
+	player_order: [],
 };
 
 var lobby = {
@@ -28,6 +29,12 @@ var lobby = {
 	player_to_colour: {}	
 }
 
+function Player(name, colour_id) {
+	this.name = name;
+	this.colour_id = colour_id;
+	this.mouseX = 0.5;
+	this.mouseY = 0.5;
+}
 
 
 io.on('connection', (socket) => {
@@ -57,6 +64,7 @@ io.on('connection', (socket) => {
 			} else {	
 				player_name = new_name;
 				lobby.sockets[player_name] = socket;
+
 				console.log(player_name + ' joined the lobby');
 				socket.emit('join_lobby', player_name);
 				broadcast_lobby_state();
@@ -73,7 +81,7 @@ io.on('connection', (socket) => {
 			player_name = new_name;
 			game.sockets[player_name] = socket;
 			console.log(player_name + ' rejoined the game');
-			socket.emit('join_success', player_name);
+			socket.emit('rejoin_success', player_name);
 		}
 	});
 
@@ -103,6 +111,13 @@ io.on('connection', (socket) => {
 		}
 		start_new_game(map_name);
 	});
+
+	socket.on('mouse_update', (args) => {
+		if (args.name != player_name) return;
+		var player = game.players[player_name];
+		player.mouseX = args.mouseX;
+		player.mouseY = args.mouseY;
+	});
 });
 
 
@@ -114,26 +129,39 @@ function broadcast_lobby_state() {
 		players: [],
 		colour_to_player: {}
 	};
-	for (name in lobby.sockets) {
-		lobby_state.players.push(name);
-		if (name in lobby.player_to_colour)
- 			lobby_state.colour_to_player[lobby.player_to_colour[name]] = name;
+	for (var name_ in lobby.sockets) {
+		lobby_state.players.push(name_);
+		if (name_ in lobby.player_to_colour)
+ 			lobby_state.colour_to_player[lobby.player_to_colour[name_]] = name_;
 	}
 
 	io.sockets.emit('lobby_state', lobby_state);
 }
 
 
+function broadcast_mouse_positions() {
+	var positions = {};
+	for (const [name_, player] of Object.entries(game.players)) {
+		positions[name_] = [player.mouseX, player.mouseY];
+	}
+
+	io.sockets.emit('mouse_update', positions);
+}
+
+var mousePollHandle = undefined;
 function start_new_game(map_name) {
+	// Wizards & Warlocks: Trouble in the Great Library?
 	console.log('Starting game with map: ' + map_name);
 
-	/*for (const [name, colour] of Object(entries(lobby.player_to_colour))) {
-		game.players.push({
-			name: name,
-			colour_index: colour,
-			position:
-		});
-	}*/
+	for (const [name_, colour_id] of Object.entries(lobby.player_to_colour)) {
+		game.players[name_] = new Player(name_, colour_id);
+		game.player_order.push(name_);
+		game.sockets[name_] = lobby.sockets[name_];
+	}
+	lobby.sockets = {};
+	
 
 	io.sockets.emit('start', map_name);
+
+	mousePollHandle = setInterval(broadcast_mouse_positions, 1000);
 }

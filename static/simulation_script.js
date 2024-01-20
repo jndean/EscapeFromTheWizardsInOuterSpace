@@ -1481,17 +1481,19 @@ function correctRadius (radius) {
     return radius;
 }
 
-canvas.addEventListener('mousedown', e => {
-    let posX = scaleByPixelRatio(e.offsetX);
-    let posY = scaleByPixelRatio(e.offsetY);
-    // let pointer = pointers.find(p => p.id == -1);
-    // if (pointer == null)
-    //     pointer = new pointerPrototype();
-    updatePointerDownData(mousePointer, -1, posX, posY);
-});
+// canvas.addEventListener('mousedown', e => {
+//     let posX = scaleByPixelRatio(e.offsetX);
+//     let posY = scaleByPixelRatio(e.offsetY);
+//     // let pointer = pointers.find(p => p.id == -1);
+//     // if (pointer == null)
+//     //     pointer = new pointerPrototype();
+//     updatePointerDownData(mousePointer, -1, posX, posY);
+// });
+
 
 let mouseX = undefined;
 let mouseY = undefined;
+let mouseModeTime = performance.now();
 
 overlay.addEventListener('mousemove', e => {
     if (!mousePointer.down) return;
@@ -1504,17 +1506,19 @@ overlay.addEventListener('mousemove', e => {
     if (mouseX === undefined) {
         mouseX = destX;
         mouseY = destY;
+        mouseModeTime = performance.now();
         return;
     }
 
     let deltaX = correctDeltaX(destX - mouseX);
     let deltaY = correctDeltaY(destY - mouseY);
     let delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    // if (delta > 0.1) { // Moved too far to interpolate
-    //     mouseX = destX;
-    //     mouseY = destY;
-    //     return;
-    // }
+    if (performance.now() - mouseModeTime  > 50) {
+        mouseX = destX;
+        mouseY = destY;
+        mouseModeTime = performance.now();
+        return;
+    }
     
     if(delta < 0.005) { // Slow movement thresh
         splat(
@@ -1525,6 +1529,7 @@ overlay.addEventListener('mousemove', e => {
         );
         mouseX = destX;
         mouseY = destY;
+        mouseModeTime = performance.now();
         return;
     }
         
@@ -1548,48 +1553,13 @@ overlay.addEventListener('mousemove', e => {
         delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
     }
 
-
-    // return; 
-
-    //  // Smooth movement
-    //  let delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    //  if (delta > 0.1) {
-    //     updatePointerMoveData(mousePointer, screenPosX, screenPosY);
-    //     mousePointer.moved = false;
-    //     return;
-    //  }
-    //  if (delta < thresh) {
-    //     updatePointerMoveData(mousePointer, screenPosX, screenPosY);
-    //     return;
-    //  }
-
-    // while (delta > 0) {
-    //     let frac = thresh / delta;
-    //     let dX = frac * deltaX;
-    //     let dY = frac * deltaY;
-    //     texcoordX += dX;
-    //     texcoordY += dY;
-    //     deltaX -= dX;
-    //     deltaY -= dY;
-    //     splat(
-    //         texcoordX , texcoordY, 
-    //         dX * config.SPLAT_FORCE * 10, 
-    //         dY * frac * config.SPLAT_FORCE * 10,
-    //         mousePointer.radius * 0.2, mousePointer.color
-    //     );
-    //     delta -= thresh;
-    // }
-     
-    // // mousePointer.prevTexcoordX = texcoordX;
-    // // mousePointer.prevTexcoordY = texcoordY;
-    // updatePointerMoveData(mousePointer, screenPosX, screenPosY);
-    // // mousePointer.moved = false;
+    mouseModeTime = performance.now();
 
 });
 
-window.addEventListener('mouseup', () => {
+// window.addEventListener('mouseup', () => {
     // updatePointerUpData(mousePointer);
-});
+// });
 
 // canvas.addEventListener('touchstart', e => {
 //     e.preventDefault();
@@ -1633,32 +1603,32 @@ window.addEventListener('mouseup', () => {
 // });
 
 
-function updatePointerDownData (pointer, id, posX, posY) {
-    pointer.id = id;
-    pointer.down = true;
-    pointer.moved = false;
-    pointer.texcoordX = posX / canvas.width;
-    pointer.texcoordY = 1.0 - posY / canvas.height;
-    pointer.prevTexcoordX = pointer.texcoordX;
-    pointer.prevTexcoordY = pointer.texcoordY;
-    pointer.deltaX = 0;
-    pointer.deltaY = 0;
-    pointer.color = randomColour();
-}
+// function updatePointerDownData (pointer, id, posX, posY) {
+//     pointer.id = id;
+//     pointer.down = true;
+//     pointer.moved = false;
+//     pointer.texcoordX = posX / canvas.width;
+//     pointer.texcoordY = 1.0 - posY / canvas.height;
+//     pointer.prevTexcoordX = pointer.texcoordX;
+//     pointer.prevTexcoordY = pointer.texcoordY;
+//     pointer.deltaX = 0;
+//     pointer.deltaY = 0;
+//     pointer.color = randomColour();
+// }
 
-function updatePointerMoveData (pointer, posX, posY) {
-    pointer.prevTexcoordX = pointer.texcoordX;
-    pointer.prevTexcoordY = pointer.texcoordY;
-    pointer.texcoordX = posX / canvas.width;
-    pointer.texcoordY = 1.0 - posY / canvas.height;
-    pointer.deltaX = correctDeltaX(pointer.texcoordX - pointer.prevTexcoordX);
-    pointer.deltaY = correctDeltaY(pointer.texcoordY - pointer.prevTexcoordY);
-    pointer.moved = Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
-}
+// function updatePointerMoveData (pointer, posX, posY) {
+//     pointer.prevTexcoordX = pointer.texcoordX;
+//     pointer.prevTexcoordY = pointer.texcoordY;
+//     pointer.texcoordX = posX / canvas.width;
+//     pointer.texcoordY = 1.0 - posY / canvas.height;
+//     pointer.deltaX = correctDeltaX(pointer.texcoordX - pointer.prevTexcoordX);
+//     pointer.deltaY = correctDeltaY(pointer.texcoordY - pointer.prevTexcoordY);
+//     pointer.moved = Math.abs(pointer.deltaX) > 0 || Math.abs(pointer.deltaY) > 0;
+// }
 
-function updatePointerUpData (pointer) {
-    pointer.down = false;
-}
+// function updatePointerUpData (pointer) {
+//     pointer.down = false;
+// }
 
 function correctDeltaX (delta) {
     let aspectRatio = canvas.width / canvas.height;

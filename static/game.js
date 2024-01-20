@@ -1,14 +1,17 @@
 
 var game_state = {
 	players: [],
-
 }
 
+
+socket.on('mouse_update', player_positions => {
+	console.log(player_positions);
+});
 
 function setupGame() {
 
 	UI_div.style.display = 'block';
-	UI_div.style.animation = 'fadeIn ease 8s';
+	UI_div.style.animation = 'fadeIn ease 10s';
 
 	document.addEventListener('mousedown', e => {
 
@@ -18,5 +21,13 @@ function setupGame() {
 		createAttackAnimation(x, y, randomColour(), randomColour());
 
 	});
+
+	setInterval(function() {
+		socket.emit('mouse_update', {
+			mouseX: mouseX,
+			mouseY: mouseY,
+			name: player_name,
+		});
+	}, 1000);
 
 }	
