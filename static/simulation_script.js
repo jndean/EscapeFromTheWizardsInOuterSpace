@@ -67,6 +67,7 @@ function pointerPrototype () {
     this.down = false;
     this.moved = false;
     this.radius = 0.002; // config.SPLAT_RADIUS;
+    this.force = config.SPLAT_FORCE;
     this.color = [30, 0, 300];
 }
 
@@ -698,8 +699,8 @@ const sunraysShader = compileShader(gl.FRAGMENT_SHADER, `
         {
             coord -= dir;
 
-            bool is_wall = texture2D(uWalls, coord).r == 1.0;
-            if (is_wall) break;
+            // bool is_wall = texture2D(uWalls, coord).r == 1.0;
+            // if (is_wall) break;
 
             float col = texture2D(uTexture, coord).a;
             color += col * illuminationDecay * weight;
@@ -1433,8 +1434,8 @@ function blur (target, temp, iterations) {
 }
 
 function splatPointer (pointer) {
-    let dx = pointer.deltaX * config.SPLAT_FORCE;
-    let dy = pointer.deltaY * config.SPLAT_FORCE;
+    let dx = pointer.deltaX * pointer.force;
+    let dy = pointer.deltaY * pointer.force;
     splat(
         pointer.texcoordX, pointer.texcoordY, 
         dx, dy, pointer.radius, pointer.color
@@ -1496,7 +1497,9 @@ let mouseY = undefined;
 let mouseModeTime = performance.now();
 
 overlay.addEventListener('mousemove', e => {
+    holding_breath = e.altKey;
     if (!mousePointer.down) return;
+
     var bounds = overlay.getBoundingClientRect()
     let screenPosX = scaleByPixelRatio(e.clientX - bounds.x);
     let screenPosY = scaleByPixelRatio(e.clientY - bounds.y); 
@@ -1521,19 +1524,21 @@ overlay.addEventListener('mousemove', e => {
     }
     
     if(delta < 0.005) { // Slow movement thresh
-        splat(
-            destX , destY, 
-            deltaX * config.SPLAT_FORCE, 
-            deltaY * config.SPLAT_FORCE,
-            mousePointer.radius, mousePointer.color
-        );
+        if (!holding_breath) {
+            splat(
+                destX , destY, 
+                deltaX * config.SPLAT_FORCE, 
+                deltaY * config.SPLAT_FORCE,
+                mousePointer.radius, mousePointer.color
+            );
+        }
         mouseX = destX;
         mouseY = destY;
         mouseModeTime = performance.now();
         return;
     }
         
-    const spacing = 0.001;
+    const spacing = 0.0015;
     while(delta > spacing) {
         let frac = spacing / delta;
         let dX = frac * deltaX * (Math.random() * 3);
@@ -1541,12 +1546,14 @@ overlay.addEventListener('mousemove', e => {
         mouseX += dX;
         mouseY += dY;
 
-        splat(
-            mouseX, mouseY, 
-            dX * config.SPLAT_FORCE * 20, 
-            dY * config.SPLAT_FORCE * 20,
-            mousePointer.radius * 0.15, mousePointer.color
-        );
+        if (!holding_breath) {
+            splat(
+                mouseX, mouseY, 
+                dX * config.SPLAT_FORCE * 20, 
+                dY * config.SPLAT_FORCE * 20,
+                mousePointer.radius * 0.15, mousePointer.color
+            );
+        }
         
         deltaX = correctDeltaX(destX - mouseX);
         deltaY = correctDeltaY(destY - mouseY);
@@ -1648,30 +1655,6 @@ function randomColour () {
     c.g *= 0.15;
     c.b *= 0.15;
     return c;
-}
-
-function HSVtoRGB (h, s, v) {
-    let r, g, b, i, f, p, q, t;
-    i = Math.floor(h * 6);
-    f = h * 6 - i;
-    p = v * (1 - s);
-    q = v * (1 - f * s);
-    t = v * (1 - (1 - f) * s);
-
-    switch (i % 6) {
-        case 0: r = v, g = t, b = p; break;
-        case 1: r = q, g = v, b = p; break;
-        case 2: r = p, g = v, b = t; break;
-        case 3: r = p, g = q, b = v; break;
-        case 4: r = t, g = p, b = v; break;
-        case 5: r = v, g = p, b = q; break;
-    }
-
-    return {
-        r,
-        g,
-        b
-    };
 }
 
 function normalizeColor (input) {

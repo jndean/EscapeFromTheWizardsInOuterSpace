@@ -30,6 +30,7 @@ socket.on('join_fail', (message) => {
 socket.on('join_lobby', (name) => {
 	player_name = name;
 	destroy(join_div);
+	game.state = 'lobby';
 
 	for (var i = 0; i < 8; ++i) {
 		create_character_selection_box(i);
@@ -81,6 +82,7 @@ function create_character_selection_box(i) {
 }
 
 socket.on('lobby_state', state => {
+	if (game.state != 'lobby') return;
 
 	for (var colour = 0; colour < 8; ++colour) {
 		var opt = character_selection_options[colour];
@@ -147,7 +149,9 @@ function start(map_name='Galilei') {
 }
 
 
-socket.on('start', map_name => {
+socket.on('start', start_args => {
+	if (game.state != 'lobby') return;
+	
 	lobbyFluidCurrentsAnimation.unregister();
 	lobbyFluidCurrentsAnimation = null;
 	gameStartAnimation(character_selection_options);
@@ -158,12 +162,12 @@ socket.on('start', map_name => {
 	}
 
 	map_image.src = 'static/maps/galilei_map_colour.png';
+	map_image.style.animation = 'rectifiedFadeIn ease 4s';
 	show(map_image);
-	map_image.style.animation = 'rectifiedFadeIn ease 3s';
-	setTimeout(() => {wallsTexture = galileiWallsTexture;}, 0);
+	wallsTexture = galileiWallsTexture;
 	
-	lore_field.style.animation = 'fadeOut ease 4s';
-	setTimeout(() => {destroy(lore_field); setupGame();}, 4000);
+	lore_field.style.animation = 'fadeOut ease 5s';
+	setTimeout(() => {destroy(lore_field); setupGame(start_args);}, 5000);
 
 });
 

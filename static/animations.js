@@ -314,6 +314,91 @@ function AnimationCharacterDither(x, y, colour) {
 	}
 }
 
+
+
+function AnimationGhostMouse(colour, name) {
+	this.speed = 0.6;
+	this.radius = 0.0004;
+	this.dead_zone = this.radius;
+
+	this.targetX = 0.5;
+	this.targetY = 0.5;
+	this.momentum_decay_factor = 0.5;
+
+	this.colour = colour;
+	this.name = name;
+	this.pointer = new pointerPrototype()
+	this.pointer.color = colour;
+	this.pointer.down = true;
+	this.pointer.moved = true;
+	this.pointer.radius = this.radius;
+	this.pointer.force *= 100;
+
+	this.registered = false;
+
+	this.reset = () => {};
+
+	this.setTarget = function(X, Y) {
+		this.targetX = X;
+		this.targetY = Y;
+	};
+
+	this.step = function(dt) {
+
+		var colourScale = Math.random();
+		this.pointer.color = {
+			r: this.colour.r * colourScale,
+			g: this.colour.g * colourScale,
+			b: this.colour.b * colourScale,
+		}
+
+		this.pointer.prevTexcoordX = this.pointer.texcoordX;
+		this.pointer.prevTexcoordY = this.pointer.texcoordY;
+
+		var dX = correctDeltaX(this.targetX - this.pointer.texcoordX);
+		var dY = correctDeltaY(this.targetY - this.pointer.texcoordY);
+		dX = dX * (1 - this.momentum_decay_factor) + this.pointer.deltaX * this.momentum_decay_factor;
+		dY = dY * (1 - this.momentum_decay_factor) + this.pointer.deltaY * this.momentum_decay_factor;
+		var d = Math.sqrt(dX*dX + dY*dY);
+		if (d < this.dead_zone) {
+			this.pointer.texcoordX = this.targetX;
+			this.pointer.texcoordY = this.targetY;
+			return;
+		}
+		this.pointer.moved = this.name != player_name || holding_breath;
+
+		let maxSpeed = this.speed * dt;
+		if (d <= maxSpeed) {
+			this.pointer.texcoordX = this.targetX;
+			this.pointer.texcoordY = this.targetY;
+			this.pointer.deltaX = dX;
+			this.pointer.deltaY = dY;
+		} else {
+			let frac = maxSpeed / d;
+			this.pointer.texcoordX += frac * dX * Math.random() * 2;
+			this.pointer.texcoordY += frac * dY * Math.random();
+			this.pointer.deltaX = correctDeltaX(this.pointer.texcoordX - this.pointer.prevTexcoordX);
+			this.pointer.deltaY = correctDeltaY(this.pointer.texcoordY - this.pointer.prevTexcoordY);
+		}
+	}
+
+	this.register = function() {
+		CURRENT_ANIMATIONS.add(this);
+		pointers.add(this.pointer);
+		this.registered = true;
+	}
+
+	this.unregister = function() {
+		if (pointers.has(this.pointer))
+			pointers.delete(this.pointer);
+		if (CURRENT_ANIMATIONS.has(this))
+			CURRENT_ANIMATIONS.delete(this);
+		this.registered = false;
+	}
+
+}
+
+
 function createAnimationSpiral(
 	x, y, colour, speed, rad,
 	steps, 

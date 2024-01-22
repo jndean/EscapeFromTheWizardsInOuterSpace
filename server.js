@@ -160,8 +160,11 @@ function start_new_game(map_name) {
 	}
 	lobby.sockets = {};
 	
+	io.sockets.emit('start', {
+		map_name: map_name,
+		player_order: game.player_order,
+		player_to_colour: lobby.player_to_colour,
+	});
 
-	io.sockets.emit('start', map_name);
-
-	mousePollHandle = setInterval(broadcast_mouse_positions, 1000);
+	mousePollHandle = setInterval(broadcast_mouse_positions, 200);
 }
