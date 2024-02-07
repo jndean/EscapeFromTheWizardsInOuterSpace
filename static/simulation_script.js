@@ -738,6 +738,48 @@ const splatShader = compileShader(gl.FRAGMENT_SHADER, `
     }
 `);
 
+const batchSplatShader = compileShader(gl.FRAGMENT_SHADER, `
+    precision highp float;
+    precision highp sampler2D;
+
+    varying vec2 vUv;
+    uniform sampler2D uTarget;
+    uniform sampler2D uWalls;
+    uniform float aspectRatio;
+    uniform vec2 points[20];
+    uniform vec3 colours[20];
+    uniform float radius;
+    uniform int numPoints;
+
+    void main () {
+
+        vec3 base = texture2D(uTarget, vUv).xyz;
+        bool is_wall = texture2D(uWalls, vUv).r == 1.0;
+
+        if (is_wall) {
+            float splatAlpha = 0.0;
+            for (int i = 0; i < 20; ++i) {
+                if (i == numPoints) break;
+
+                vec2 p = vUv - points[i];
+                p.x *= aspectRatio;
+                splatAlpha += exp(-dot(p, p) / radius);
+            }
+            gl_FragColor = vec4(base + vec3(splatAlpha * 0.03), 1.0);
+        } else {
+            vec3 splatColour = vec3(0.0, 0.0, 0.0);
+            for (int i = 0; i < 20; ++i) {
+                if (i == numPoints) break;
+
+                vec2 p = vUv - points[i];
+                p.x *= aspectRatio;
+                splatColour += exp(-dot(p, p) / radius) * colours[i];
+            }
+            gl_FragColor = vec4(base + splatColour, 1.0);
+        }
+    }
+`);
+
 const advectionShader = compileShader(gl.FRAGMENT_SHADER, `
     precision highp float;
     precision highp sampler2D;
@@ -976,6 +1018,7 @@ const bloomFinalProgram      = new Program(baseVertexShader, bloomFinalShader);
 const sunraysMaskProgram     = new Program(baseVertexShader, sunraysMaskShader);
 const sunraysProgram         = new Program(baseVertexShader, sunraysShader);
 const splatProgram           = new Program(baseVertexShader, splatShader);
+const batchSplatProgram      = new Program(baseVertexShader, batchSplatShader);
 const advectionProgram       = new Program(baseVertexShader, advectionShader);
 const divergenceProgram      = new Program(baseVertexShader, divergenceShader);
 const curlProgram            = new Program(baseVertexShader, curlShader);
@@ -1475,6 +1518,54 @@ function splat (x, y, dx, dy, radius, color) {
     dye.swap();
 }
 
+var MAX_SPLATS_PER_BATCH = 20; // Also change in batchSplatShader
+var BATCH_SPLAT_POINTS = new Float32Array(2 * MAX_SPLATS_PER_BATCH);
+var BATCH_SPLAT_COLOURS = new Float32Array(3 * MAX_SPLATS_PER_BATCH);
+
+function batchSplat (points, deltas, radius, color) {
+    // Alternatively could try a 'line-drawing' shader that draws a line
+    // from start of mouse movement to end using a distance-from-line function, 
+    // which would have fixed cost (and be more realistic maybe...)
+    if (points.length > MAX_SPLATS_PER_BATCH || deltas.length > MAX_SPLATS_PER_BATCH) {
+        console.log("Too many splats to batch.")
+        return;
+    }
+    for (var i = 0; i < points.length; ++i) {
+        let [x, y] = points[i];
+        BATCH_SPLAT_POINTS[2 * i] = x;
+        BATCH_SPLAT_POINTS[2 * i + 1] = y;
+    }
+    for (var i = 0; i < deltas.length; ++i) {
+        let [dx, dy] = deltas[i];
+        BATCH_SPLAT_COLOURS[3 * i] = dx;
+        BATCH_SPLAT_COLOURS[3 * i + 1] = dy;
+        BATCH_SPLAT_COLOURS[3 * i + 2] = 0.0; // Test: OK to remove me?
+    }
+
+    batchSplatProgram.bind();
+    gl.uniform1i(batchSplatProgram.uniforms.uTarget, velocity.read.attach(0));
+    gl.uniform1i(batchSplatProgram.uniforms.uWalls, wallsTexture.attach(1));
+    gl.uniform1f(batchSplatProgram.uniforms.aspectRatio, canvas.width / canvas.height);
+    gl.uniform2fv(batchSplatProgram.uniforms["points[0]"], BATCH_SPLAT_POINTS);
+    gl.uniform3fv(batchSplatProgram.uniforms["colours[0]"], BATCH_SPLAT_COLOURS);
+    gl.uniform1i(batchSplatProgram.uniforms.numPoints, points.length);
+    gl.uniform1f(batchSplatProgram.uniforms.radius, correctRadius(radius / 100.0));
+    blit(velocity.write);
+    velocity.swap();
+
+    
+    for (var i = 0; i < points.length; ++i) {
+        BATCH_SPLAT_COLOURS[3 * i] = color.r;
+        BATCH_SPLAT_COLOURS[3 * i + 1] = color.g;
+        BATCH_SPLAT_COLOURS[3 * i + 2] = color.b;
+    }
+
+    gl.uniform1i(batchSplatProgram.uniforms.uTarget, dye.read.attach(0));
+    gl.uniform3fv(batchSplatProgram.uniforms["colours[0]"], BATCH_SPLAT_COLOURS);
+    blit(dye.write);
+    dye.swap();
+}
+
 function correctRadius (radius) {
     let aspectRatio = canvas.width / canvas.height;
     if (aspectRatio > 1)
@@ -1537,7 +1628,10 @@ overlay.addEventListener('mousemove', e => {
         mouseModeTime = performance.now();
         return;
     }
-        
+
+    let batched_points = [];
+    let batched_deltas = [];
+
     const spacing = 0.0015;
     while(delta > spacing) {
         let frac = spacing / delta;
@@ -1547,17 +1641,31 @@ overlay.addEventListener('mousemove', e => {
         mouseY += dY;
 
         if (!holding_breath) {
-            splat(
-                mouseX, mouseY, 
+            batched_points.push([mouseX, mouseY]);
+            batched_deltas.push([
                 dX * config.SPLAT_FORCE * 20, 
-                dY * config.SPLAT_FORCE * 20,
-                mousePointer.radius * 0.15, mousePointer.color
-            );
+                dY * config.SPLAT_FORCE * 20
+            ]);
+            if (batched_points.length == MAX_SPLATS_PER_BATCH) {
+                batchSplat(batched_points, batched_deltas, mousePointer.radius * 0.15, mousePointer.color);
+                batched_points = [];
+                batched_deltas = [];
+            }
+            // splat(
+            //     mouseX, mouseY, 
+            //     dX * config.SPLAT_FORCE * 20, 
+            //     dY * config.SPLAT_FORCE * 20,
+            //     mousePointer.radius * 0.15, mousePointer.color
+            // );
         }
         
         deltaX = correctDeltaX(destX - mouseX);
         deltaY = correctDeltaY(destY - mouseY);
         delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    }
+
+    if (batched_points.length > 0 && !holding_breath) {
+        batchSplat(batched_points, batched_deltas, mousePointer.radius * 0.15, mousePointer.color);
     }
 
     mouseModeTime = performance.now();

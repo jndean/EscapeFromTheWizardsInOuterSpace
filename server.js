@@ -16,6 +16,8 @@ app.get('/', (req, res) => {
 });
 
 
+// ----------------- State ---------------- //
+
 var game = {
 	phase: 'lobby',
 	sockets: {},
@@ -29,13 +31,16 @@ var lobby = {
 	player_to_colour: {}	
 }
 
-function Player(name, colour_id) {
+function Player(name, colour_id, warlock) {
 	this.name = name;
 	this.colour_id = colour_id;
+	this.is_warlock = warlock;
 	this.mouseX = 0.5;
 	this.mouseY = 0.5;
 }
 
+
+// ----------------- Networking ---------------- //
 
 io.on('connection', (socket) => {
     var player_name = null;
@@ -124,6 +129,8 @@ io.on('connection', (socket) => {
 server.listen(port, () => {console.log('listening on port ' + port.toString());});
 
 
+// ----------- Actions ------------ //
+
 function broadcast_lobby_state() {
 	var lobby_state = {
 		players: [],
@@ -153,8 +160,16 @@ function start_new_game(map_name) {
 	// Wizards & Warlocks: Trouble in the Great Library?
 	console.log('Starting game with map: ' + map_name);
 
+	// Shuffle role cards
+	var roles = new Array(lobby.taken_colours.size).fill(false);
+	for (let i = 0; i < Math.ceil(roles.length / 2); ++i) {
+		roles[i] = true;
+	}
+	shuffle(roles);
+	console.log("Roles:", roles);
+
 	for (const [name_, colour_id] of Object.entries(lobby.player_to_colour)) {
-		game.players[name_] = new Player(name_, colour_id);
+		game.players[name_] = new Player(name_, colour_id, roles.pop());
 		game.player_order.push(name_);
 		game.sockets[name_] = lobby.sockets[name_];
 	}
@@ -166,5 +181,18 @@ function start_new_game(map_name) {
 		player_to_colour: lobby.player_to_colour,
 	});
 
-	mousePollHandle = setInterval(broadcast_mouse_positions, 200);
+	mousePollHandle = setInterval(broadcast_mouse_positions, 100);
+}
+
+
+
+// -------------- Utilities -------------- //
+
+
+function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
 }

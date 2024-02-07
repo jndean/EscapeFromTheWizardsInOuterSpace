@@ -318,12 +318,11 @@ function AnimationCharacterDither(x, y, colour) {
 
 function AnimationGhostMouse(colour, name) {
 	this.speed = 0.6;
-	this.radius = 0.0004;
+	this.radius = 0.00025;
 	this.dead_zone = this.radius;
 
 	this.targetX = 0.5;
 	this.targetY = 0.5;
-	this.momentum_decay_factor = 0.5;
 
 	this.colour = colour;
 	this.name = name;
@@ -332,7 +331,8 @@ function AnimationGhostMouse(colour, name) {
 	this.pointer.down = true;
 	this.pointer.moved = true;
 	this.pointer.radius = this.radius;
-	this.pointer.force *= 100;
+	this.max_force = config.SPLAT_FORCE * 90;
+	this.min_force = 0;
 
 	this.registered = false;
 
@@ -357,8 +357,6 @@ function AnimationGhostMouse(colour, name) {
 
 		var dX = correctDeltaX(this.targetX - this.pointer.texcoordX);
 		var dY = correctDeltaY(this.targetY - this.pointer.texcoordY);
-		dX = dX * (1 - this.momentum_decay_factor) + this.pointer.deltaX * this.momentum_decay_factor;
-		dY = dY * (1 - this.momentum_decay_factor) + this.pointer.deltaY * this.momentum_decay_factor;
 		var d = Math.sqrt(dX*dX + dY*dY);
 		if (d < this.dead_zone) {
 			this.pointer.texcoordX = this.targetX;
@@ -380,6 +378,14 @@ function AnimationGhostMouse(colour, name) {
 			this.pointer.deltaX = correctDeltaX(this.pointer.texcoordX - this.pointer.prevTexcoordX);
 			this.pointer.deltaY = correctDeltaY(this.pointer.texcoordY - this.pointer.prevTexcoordY);
 		}
+		
+		let frac = 0.2 * d / maxSpeed;
+		if (frac > 1) {
+			this.pointer.force = this.max_force;
+		} else {
+			this.pointer.force = this.max_force * frac + this.min_force * (1 - frac);
+		}
+		
 	}
 
 	this.register = function() {

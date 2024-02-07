@@ -54,7 +54,7 @@ function setupMousePointers() {
 			mouseY: mouseY,
 			name: player_name,
 		});
-	}, 200);
+	}, 100);
 
 	// Receive all players mouse positions
 	socket.on('mouse_update', player_positions => {

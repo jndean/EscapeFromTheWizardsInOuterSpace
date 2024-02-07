@@ -81,7 +81,6 @@ td {
     padding: 20px;
     text-align: justify;
     font-size: 23px;
-    border-left: 1px groove #bbb;
 }
 
 @keyframes fadeIn {
