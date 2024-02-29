@@ -1,7 +1,7 @@
 
 var character_selection_options = [];
 var lobbyFluidCurrentsAnimation = createLobbyCurrentsAnimation();
-var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-!?#[]~:.,$";
+var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-!?:.,$";
 
 
 join_button.onclick = function() {
@@ -9,7 +9,7 @@ join_button.onclick = function() {
 	if (name.length == 0) {
 		join_msg_div.innerHTML = "Name too short";
 		return;
-	} else if (name.length > 15) {
+	} else if (name.length > 11) {
 		join_msg_div.innerHTML = "Name too long";
 		return;
 	} else if (name.length != name.split('')
@@ -28,6 +28,7 @@ socket.on('join_fail', (message) => {
 });
 
 socket.on('join_lobby', (name) => {
+	document.body.requestFullscreen();
 	player_name = name;
 	destroy(join_div);
 	game.state = 'lobby';
@@ -132,7 +133,7 @@ function generate_lobby_text(lobby_state) {
 		var title = player_to_title[name];
 		if (title != null) txt += 'Adeptus ' + title + ' ';
 		txt += name + ' <font color=black>-</font> ';
-		if (title != null) txt += '<img src="static/symbols/' + title + '.png", style="width: 20px; height: 20px">';
+		if (title != null) txt += '<img src="static/symbols/' + title + '.png", style="vertical-align: middle; width: 20px; height: 20px">';
 		txt += '<br>';
 	}
 
@@ -161,7 +162,7 @@ socket.on('start', start_args => {
 		destroy(opt.name_box);
 	}
 
-	map_image.src = 'static/maps/galilei_map_colour.png';
+	map_image.src = 'static/maps/galilei_map_tests.png';
 	map_image.style.animation = 'rectifiedFadeIn ease 4s';
 	show(map_image);
 	wallsTexture = galileiWallsTexture;

@@ -6,7 +6,7 @@
 	    <link rel="stylesheet" href="static/style.css">
     </head>
     <body>
-    	<div class="centered game">
+    	<div class="centered game" id="game_view">
 	        <div class="board board-shaped">
 	            <div class="board-layer" id="underlay">
 
@@ -25,49 +25,59 @@
 
 
 	        <div class="sidepanel" id="sidepanel">
-	        	<div class="textfield lore-field" id="lore_field"></div>
-	        	<div class="textfield" id="UI_div" style="display: none; text-align: center; margin: auto; padding-top: 100px">
-
-	        		<table style="width:350px">
-	        			<tr>
-	        				<td><img src="static/symbols/demonic.png", style="width: 50px; height: 50px"></td>
-	        				<td>Adeptus Demonic<br>Katharine</td>
-	        			</tr>
-	        			<tr>
-	        				<td>
-	        					<img src="static/symbols/physical.png", style="width: 50px; height: 50px">
-	        				</td>
-	        				<td>
-	        					Adeptus Physical 
-	        					<br>Lloyd
-	        				</td>
-	        			</tr>
-	        			<tr>
-	        				<td>
-	        					<img src="static/symbols/chaotic.png", style="width: 50px; height: 50px">
-	        				</td>
-	        				<td>
-	        					Adeptus Chaotic 
-	        					<br>Sean
-	        				</td>
-	        			</tr>
-	        		</table>
+	        	<div class="textfield lore-field" id="lore_field" style="display: block"></div>
+	        	<div class="textfield" id="UI_div" style="display: none; margin-left: 5px;">
+					<div style="text-align:center; padding-bottom: 10px">Wizards & Warlocks</div>
+					<div class="textfield player-list" id="player_list" style="margin-left: 10px; padding: 10px; background-color: #000;">
+						<div class="textfield player-list-item" style="font-size: 25px;"> 
+							<img src="static/symbols/demonic_blank.png" style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
+							Adptus Demonic KatharineIs
+						</div>
+						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
+							Sigils: 0
+						</div>
+						<div class="textfield player-list-item" style="font-size: 25px; text-align: left"> 
+							<img class="rotatingimg" src="static/symbols/Mechanical.png"style="padding-right: 10px">
+							Adptus Mechanical Sean
+						</div>
+						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
+							Sigils: 1
+						</div>
+						<div class="textfield player-list-item" style="font-size: 25px; text-align: left"> 
+							<img src="static/symbols/historical_blank.png", style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
+							Adptus Historical Lloyd
+						</div>
+						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
+							Sigils: 3
+						</div>
+					</div>
 
 	        	</div>
 	        </div>
 
 
-        	<div class="centered" id="join_div"><center>
-        		<input class="textfield" type="text"  id="username_input_field"
-        			autocomplete="off", placeholder="what is your name?">
+        	<div class="textfield centered" id="join_div"><center>
+				<div style="font-size: 80px;">Wizards & Warlocks:</div>
+				<div style="font-size: 50px;">Hexes in the Aether</div> <br><br><br><br><br>
+        		<br><input class="textfield" type="text"  id="username_input_field"
+				autocomplete="off", placeholder="what is your name?">
         		<button class="button textfield" id="join_button">Join</button>
     			<br><div class="textfield" id="join_msg_div"></div>
+				<br>Simulation Quality:
+				<br><br>
+				<button class="button textfield"> High </button> []
+				<button class="button textfield"> Low </button><br>
+
+				<br><br><br><br>
+				<div class="textfield" style="font-size: 30px"> Press F11 to switch in/out of fullscreen mode </div>
+
         	</center></div>
 
 		</div>
 
 	    <script src="/socket.io/socket.io.js"></script>
         <script src="./static/globals.js"></script>
+        <script src="./static/game_data.js"></script>
         <script src="./static/simulation_script.js"></script>
         <script src="./static/animations.js"></script>
         <script src="./static/game.js"></script>

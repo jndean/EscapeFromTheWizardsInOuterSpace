@@ -2,10 +2,19 @@
 var socket = io();
 var player_name = null;
 var holding_breath = false;
+var board_scale = 1;
 
 function show(x) {x.style.display = 'block';}
 function hide(x) {x.style.display = 'none';}
 function destroy(x) {x.parentNode.removeChild(x);}
+
+window.addEventListener('resize', (e) => {
+    let game_view = document.getElementById("game_view");
+    let w_scale = document.body.clientWidth / game_view.clientWidth;
+    let h_scale = document.body.clientHeight / game_view.clientHeight;
+    board_scale = Math.max(0.5, Math.min(w_scale, h_scale, 1.5));
+    game_view.style.transform = 'translate(-50%, -50%) scale(' + board_scale.toString() + ')';
+});
 
 
 function HSVtoRGB (h, s, v) {
@@ -51,67 +60,3 @@ var COLOURS = [
 // var COLOURS = [
 // 	0, 238/360, 25/360, 58/360, 220/360, 172/360, 103/360, 298/360
 // ].map(colourFromHue);
-
-var ACADEMIC_NAMES = [
-	'Demonic',
-	'Mechanical',
-	'Natural',
-	'Chemical',
-	'Historical',
-	'Physical',
-	'Psionic',
-	'Chaotic'
-]
-
-
-const GALILEI_WALLS_BY_COL = [
-	[1, 7, 8],
-	[7],
-	[],
-	[1, 4, 6, 7],
-	[1, 7, 14],
-	[12 ,13 ,14],
-	[],
-	[5, 10, 11],
-	[6, 12],
-	[7, 12],
-	[7, 13],
-	[7],
-	[7],
-	[7],
-	[1, 3, 4],
-	[],
-	[],
-	[10, 11, 14],
-	[1, 3, 10, 11, 14],
-	[1, 3, 4, 9, 10],
-	[],
-	[7],
-	[1, 7, 8]
-]
-
-const GALILEI_SAFE_BY_COL = [
-	[4, 5, 6, 9, 10, 11, 12, 13],
-	[5, 10],
-	[1, 14],
-	[10, 14],
-	[2, 12],
-	[1, 10],
-	[7, 12, 14],
-	[1, 2, 3, 7, 14],
-	[1, 9, 14],
-	[1, 14],
-	[2, 5, 9, 11],
-	[2, 4, 9, 11, 14],
-	[2, 5, 9, 11],
-	[3, 14],
-	[5, 9, 14],
-	[1, 3, 4, 12],
-	[1, 4, 6, 11, 14],
-	[1, 4, 6, 7, 8, 12],
-	[],
-	[7, 8, 14],
-	[1, 5, 12],
-	[1, 8],
-	[3, 4, 5, 6, 10, 11, 12]
-]

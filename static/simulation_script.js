@@ -1232,7 +1232,6 @@ function update_fluid_sim () {
     if (!config.PAUSED)
         step(dt/2);
     render(null);
-    // console.log(CURRENT_ANIMATIONS.size);
     requestAnimationFrame(update_fluid_sim);
 }
 
@@ -1592,8 +1591,8 @@ overlay.addEventListener('mousemove', e => {
     if (!mousePointer.down) return;
 
     var bounds = overlay.getBoundingClientRect()
-    let screenPosX = scaleByPixelRatio(e.clientX - bounds.x);
-    let screenPosY = scaleByPixelRatio(e.clientY - bounds.y); 
+    let screenPosX = scaleByPixelRatio((e.clientX - bounds.x) / board_scale);
+    let screenPosY = scaleByPixelRatio((e.clientY - bounds.y) / board_scale); 
 
     let destX = screenPosX / canvas.width;
     let destY = 1.0 - screenPosY / canvas.height;
