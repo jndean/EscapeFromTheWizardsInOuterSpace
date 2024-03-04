@@ -3,18 +3,29 @@ var socket = io();
 var player_name = null;
 var holding_breath = false;
 var board_scale = 1;
+var game_view = document.getElementById("game_view");
+
+var debug_mode = true;
+
 
 function show(x) {x.style.display = 'block';}
 function hide(x) {x.style.display = 'none';}
 function destroy(x) {x.parentNode.removeChild(x);}
 
-window.addEventListener('resize', (e) => {
-    let game_view = document.getElementById("game_view");
+// Fit game to window
+function rescale_game_board(e) {
     let w_scale = document.body.clientWidth / game_view.clientWidth;
     let h_scale = document.body.clientHeight / game_view.clientHeight;
-    board_scale = Math.max(0.5, Math.min(w_scale, h_scale, 1.5));
+    board_scale = Math.max(0.5, Math.min(w_scale, h_scale, 1.4));
     game_view.style.transform = 'translate(-50%, -50%) scale(' + board_scale.toString() + ')';
+}
+window.addEventListener('resize', rescale_game_board);
+window.addEventListener('load', (e) => {
+    rescale_game_board();
+    game_view.style.opacity = '1';
+    if (!debug_mode) game_view.style.animation = 'fadeIn ease 2s';
 });
+
 
 
 function HSVtoRGB (h, s, v) {

@@ -66,6 +66,27 @@ const GALILEI_SAFE_BY_COL = [
 const GALILEI_WIZARD_SPAWN = [5, 11];
 const GALILEI_WARLOCK_SPAWN = [7, 11];
 
+const EVEN_COL_HEX_NEIGHBOURS = [
+	[+1, 0],
+	[-1, 0],
+	[0, +1],
+	[0, -1],
+	[-1, -1],
+	[-1, +1],
+];
+const ODD_COL_HEX_NEIGHBOURS = [
+	[+1, 0],
+	[-1, 0],
+	[0, +1],
+	[0, -1],
+	[+1, -1],
+	[+1, +1],
+];
+
+const SIGIL_NAMES = [
+
+];
+
 
 
 // This file is loaded by both nodejs and the browser. Only define exports for nodejs
@@ -75,4 +96,6 @@ if (typeof exports !== 'undefined') {
 	exports.GALILEI_SAFE_BY_COL = GALILEI_SAFE_BY_COL;
 	exports.GALILEI_WALLS_BY_COL = GALILEI_WALLS_BY_COL;
 	exports.ACADEMIC_NAMES = ACADEMIC_NAMES;
+	exports.EVEN_COL_HEX_NEIGHBOURS = EVEN_COL_HEX_NEIGHBOURS;
+	exports.ODD_COL_HEX_NEIGHBOURS = ODD_COL_HEX_NEIGHBOURS;
 }

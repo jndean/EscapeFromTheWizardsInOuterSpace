@@ -4,6 +4,27 @@ var lobbyFluidCurrentsAnimation = createLobbyCurrentsAnimation();
 var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-!?:.,$";
 
 
+
+// Sim Quality Selection buttons
+var high_quality_btn = document.getElementById("high_quality_btn");
+var low_quality_btn = document.getElementById("low_quality_btn");
+function quality_button_selection(e) {
+    if (this.id.startsWith("high")) {
+        config.DYE_RESOLUTION = 1024;
+        low_quality_btn.innerHTML = "Low";
+        high_quality_btn.innerHTML = "&gt High &lt";
+    }
+    if (this.id.startsWith("low"))  {
+        config.DYE_RESOLUTION = 512;
+        low_quality_btn.innerHTML = "&gt Low &lt";
+        high_quality_btn.innerHTML = "High";
+    }
+}
+high_quality_btn.onclick = quality_button_selection;
+low_quality_btn.onclick = quality_button_selection;
+
+
+
 join_button.onclick = function() {
 	var name = username_input_field.value;
 	if (name.length == 0) {
@@ -28,15 +49,23 @@ socket.on('join_fail', (message) => {
 });
 
 socket.on('join_lobby', (name) => {
-	document.body.requestFullscreen();
+	// Fade transition to fullscreen
+	if (!debug_mode) {
+		game_view.style.opacity = '0';
+		game_view.style.animation = '';
+		document.body.requestFullscreen().then((_) => {
+			game_view.style.opacity = '1';
+			if (!debug_mode) game_view.style.animation = 'fadeIn ease 5s';
+		});}
+	
 	player_name = name;
 	destroy(join_div);
 	game.state = 'lobby';
-
+	
 	for (var i = 0; i < 8; ++i) {
 		create_character_selection_box(i);
 	}
-
+	
 	update_fluid_sim();
 	lobbyFluidCurrentsAnimation.register();
 	mousePointer.down = true;

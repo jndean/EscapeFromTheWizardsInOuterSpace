@@ -1,5 +1,3 @@
-
-
 var map_canvas = document.getElementById('map_canvas');
 map_canvas.width = 1260;
 map_canvas.height = 910;
@@ -14,23 +12,6 @@ const HEX_RECT_HEIGHT = 2 * HEX_RAD;
 
 const HEX_Y_START = 13;
 const HEX_X_START = 18;
-
-const EVEN_COL_HEX_NEIGHBOURS = [
-	[+1, 0],
-	[-1, 0],
-	[0, +1],
-	[0, -1],
-	[-1, -1],
-	[-1, +1],
-];
-const ODD_COL_HEX_NEIGHBOURS = [
-	[+1, 0],
-	[-1, 0],
-	[0, +1],
-	[0, -1],
-	[+1, -1],
-	[+1, +1],
-];
 
 
 function GridCell(row, column) {
@@ -220,5 +201,3 @@ function Board() {
 
 var board = new Board();
 board.begin_cell_selector();
-
-

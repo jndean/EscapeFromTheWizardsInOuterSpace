@@ -20,12 +20,16 @@ html, body {
 
 .button {
   background-color: inherit;
-  border-color: white;
   text-align: center;
-  cursor: hand;
+  cursor: pointer;
+  border: none;
 }
 .button:hover {
   opacity: 0.7;
+}
+.clicky {
+  border: revert;
+  border-color: white;
 }
 
 .textfield {
@@ -39,12 +43,13 @@ html, body {
 .game {
     height: 910px;
     width: 1660px;
-    /*border: 1px groove #bbb;*/
+    opacity: 0;
 }
 
 .board {
     position: relative;
     float: left;
+    user-select: none;
 
 }
 
@@ -106,6 +111,15 @@ td {
     padding: 20px;
     text-align: justify;
     font-size: 23px;
+}
+
+.ui-title {
+  text-align: center;
+  margin-bottom: 9px;
+  padding: 2px;
+  border-color: #000;
+  background-color: #181818;
+  border-style: solid;
 }
 
 @keyframes fadeIn {
