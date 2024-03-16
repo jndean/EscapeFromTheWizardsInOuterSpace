@@ -47,7 +47,11 @@ function Player(name, colour_id, warlock) {
 		this.current_row = GameData.GALILEI_WARLOCK_SPAWN[0];
 		this.current_col = GameData.GALILEI_WARLOCK_SPAWN[1];
 	}
-	this.scrolls = [];
+	this.sigils = [];
+
+	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
+	this.history[9] = ['noise', 3, 3];   // TMP: DELETEME
+	this.history[7] = ['noise', 5, 5];   // TMP: DELETEME
 }
 
 
@@ -134,6 +138,15 @@ io.on('connection', (socket) => {
 		player.mouseX = args.mouseX;
 		player.mouseY = args.mouseY;
 	});
+
+	socket.on('tmp_mouseclick', (args) => {
+		console.log(args);
+		let [x, y] = args;
+		broadcast_game_state_transition('noise', {
+			x: x,
+			y: y,
+		})
+	});
 });
 
 
@@ -177,13 +190,13 @@ function start_new_game(map_name) {
 		roles[i] = true;
 	}
 	shuffle(roles);
-	console.log("Roles:", roles);
 
 	for (const [name_, colour_id] of Object.entries(lobby.player_to_colour)) {
 		game.players[name_] = new Player(name_, colour_id, roles.pop());
 		game.player_order.push(name_);
 		game.sockets[name_] = lobby.sockets[name_];
 	}
+	shuffle(game.player_order);
 	lobby.sockets = {};
 	
 	io.sockets.emit('start', {
@@ -195,7 +208,24 @@ function start_new_game(map_name) {
 	mousePollHandle = setInterval(broadcast_mouse_positions, 100);
 }
 
+function broadcast_game_state_transition(name, data) {
+	// Serialise the game state
+	let state_data = {
+		players: {}
+	};
+	for (const [name, player] of Object.entries(game.players)) {
+		state_data.players[name] = {
+			num_sigils: player.sigils.length,
+			history: player.history,
+		}
+	}
 
+	io.sockets.emit('state_transition', {
+		name: name,
+		data: data,
+		new_state: state_data,
+	});
+}
 
 // -------------- Utilities -------------- //
 

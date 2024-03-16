@@ -1,4 +1,5 @@
 var map_canvas = document.getElementById('map_canvas');
+var map_counters_layer = document.getElementById('map_counters');
 map_canvas.width = 1260;
 map_canvas.height = 910;
 var map_canvas_ctx = map_canvas.getContext('2d');
@@ -13,6 +14,8 @@ const HEX_RECT_HEIGHT = 2 * HEX_RAD;
 const HEX_Y_START = 13;
 const HEX_X_START = 18;
 
+const NOISE_TOKEN_SIZE = 17;  // pixels
+
 
 function GridCell(row, column) {
 	this.row = row;
@@ -25,6 +28,12 @@ function GridCell(row, column) {
 
 	this.is_wall = GALILEI_WALLS_BY_COL[column].includes(row+1);
 	this.is_safe = GALILEI_SAFE_BY_COL[column].includes(row+1);
+
+	this.noise_tokens = {};
+	this.player_token = null;
+	this.noise_token_positions = {};
+	this.unused_positions = [0, 1, 2, 3, 4, 5];
+	shuffle(this.unused_positions);
 
 	this.draw = function(fill, line, line_width) {
 	    map_canvas_ctx.lineWidth = line_width;
@@ -61,6 +70,64 @@ function GridCell(row, column) {
 		this.draw(fill, line, line_width);
 	}
 
+	this.colour_to_position = function(colour_id) {
+		if (!(colour_id in this.noise_token_positions)) {
+			console.log('Picking new position from options:', this.unused_positions);
+			const r = 0.6;
+			let angle = 2 * HEX_ANGLE * this.unused_positions.pop();
+			let x = this.x + (HEX_RECT_WIDTH - NOISE_TOKEN_SIZE) / 2;
+			let y = this.y + (HEX_RECT_HEIGHT - NOISE_TOKEN_SIZE) / 2;
+			x += r * HEX_SIDE * Math.cos(angle);
+			y += r * HEX_SIDE * Math.sin(angle);
+			this.noise_token_positions[colour_id] = [x, y];
+		}
+		return this.noise_token_positions[colour_id];
+	}
+
+	this.transition_noise_token = function(colour_id, value, type='blank') {
+		let token_id = 'noisetoken_' + this.row + '_' + this.col + '_' + colour_id;
+		let token = document.getElementById(token_id);
+
+		if (token === null) {
+			token = document.createElement('img');
+			token.className = 'noise-token';
+			token.id = token_id;
+			token.src = 'static/symbols/' + ACADEMIC_NAMES[colour_id] + '_' + type +'.png';
+			let [x, y] = this.colour_to_position(colour_id);
+			token.style.left = x + 'px';
+			token.style.top = y + 'px';
+			map_counters_layer.appendChild(token);
+		}
+
+		let symbol_id = token_id + '_symbol';
+		let symbol = document.getElementById(symbol_id);
+		if (symbol === null) {
+			symbol = document.createElement('img');
+			symbol.className = 'noise-token';
+			symbol.id = symbol_id;
+			token.style.opacity = 0.8;
+			symbol.style.left = token.style.left;
+			symbol.style.top = token.style.top;
+			map_counters_layer.appendChild(symbol);
+		}
+		
+		if (0 <= value || value <= 9) {
+			symbol.src = 'static/symbols/' + value + '.png';
+		}
+
+		if (value == null) {
+			token.style.opacity = 0;
+			token.id += 'beingdeletedleavemealone';
+			setTimeout(() => {map_counters_layer.removeChild(token);}, 1000);
+			symbol.style.opacity = 0;
+			symbol.id += 'beingdeletedleavemealone';
+			setTimeout(() => {map_counters_layer.removeChild(symbol);}, 1000);
+		} else {	
+			let min_opacity = 0.0;
+			let opacity = min_opacity + (HISTORY_LENGTH - value) * ((1 - min_opacity) / HISTORY_LENGTH);
+			setTimeout(() => {token.style.opacity = opacity;}, 0);
+		}
+	}
 }
 
 
@@ -134,10 +201,18 @@ function Board() {
 				
 		});
 
+		this.tmp_count = 0;
 		this.cell_select_mousedown_handle = overlay.addEventListener('mousedown', e => {
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
 			if (cell === null) return;
 			console.log('cell:', [cell.row, cell.col]);
+			// TMP: deletem
+			this.tmp_count = (10 + this.tmp_count - 1) % 10;
+			console.log(this.tmp_count);
+			cell.transition_noise_token(
+				Math.floor(6 * Math.random()), 
+				this.tmp_count
+			);
 		});
 
 		this.cell_select_mouseout_handle = overlay.addEventListener('mouseout', e => {

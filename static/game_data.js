@@ -1,5 +1,6 @@
+const HISTORY_LENGTH = 10;
 
-var ACADEMIC_NAMES = [
+const ACADEMIC_NAMES = [
 	'Demonic',
 	'Mechanical',
 	'Natural',
@@ -83,14 +84,30 @@ const ODD_COL_HEX_NEIGHBOURS = [
 	[+1, +1],
 ];
 
+// The Sigil of ...
 const SIGIL_NAMES = [
+	'Aggression',
+	'Transposition',
+	'Silence',
+	'Illumination',
+	'Resilience',
+	'Momentum',
+];
 
+const SIGIL_DESCRIPTIONS = [
+	'Aggression:<br> Attack in the current hex.',
+	'Transposition:<br> Teleport to your starting hex.',
+	'Silence:<br> You won\'t disturb the aether this turn.',
+	'Illumination: Reveal players on or adjacent to a chosen hex.',
+	'Resilience: Passive - you will automatically survive 1 attack.',
+	'Momentum: Move twice as far this turn.',
 ];
 
 
 
 // This file is loaded by both nodejs and the browser. Only define exports for nodejs
 if (typeof exports !== 'undefined') {
+	exports.HISTORY_LENGTH = HISTORY_LENGTH;
 	exports.GALILEI_WIZARD_SPAWN = GALILEI_WIZARD_SPAWN;
 	exports.GALILEI_WARLOCK_SPAWN = GALILEI_WARLOCK_SPAWN;
 	exports.GALILEI_SAFE_BY_COL = GALILEI_SAFE_BY_COL;
@@ -98,4 +115,6 @@ if (typeof exports !== 'undefined') {
 	exports.ACADEMIC_NAMES = ACADEMIC_NAMES;
 	exports.EVEN_COL_HEX_NEIGHBOURS = EVEN_COL_HEX_NEIGHBOURS;
 	exports.ODD_COL_HEX_NEIGHBOURS = ODD_COL_HEX_NEIGHBOURS;
+	exports.SIGIL_NAMES = SIGIL_NAMES;
+	exports.SIGIL_DESCRIPTIONS = SIGIL_DESCRIPTIONS;
 }

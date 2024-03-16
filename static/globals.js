@@ -64,10 +64,18 @@ function colourFromHue (hue) {
 	return colourFromHSV(hue, 1.0, 1.0);
 }
 
-
 var COLOURS = [
 	0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875
 ].map(colourFromHue);
 // var COLOURS = [
 // 	0, 238/360, 25/360, 58/360, 220/360, 172/360, 103/360, 298/360
 // ].map(colourFromHue);
+
+
+function shuffle(a) {
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}

@@ -63,6 +63,16 @@ html, body {
 }
 
 
+.noise-token {
+  position: absolute;
+  height: 17px;
+  width: 17px;
+
+  transition-duration: 1s;
+  transition-property: opacity, src;
+}
+
+
 .sidepanel {
     background-color: black;
     width: 400px;

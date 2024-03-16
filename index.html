@@ -11,6 +11,10 @@
 	            <div class="board-layer" id="underlay">
 
 	            	<img class="board-layer" id="map_image" style="display: none">
+	            	<div class="board-layer" id="map_counters">
+						<img class="noise-token" src="static/symbols/Natural.png" style="top: 100px; left: 300px;">
+					</div>
+	            	<div class="board-layer" id="map_counter_labels"></div>
 	            	<canvas class="board-layer" id="map_canvas"></canvas>
 
 	            </div>
@@ -31,7 +35,7 @@
 					<div class="ui-title">Wizards & Warlocks</div>
 					<div class="textfield player-list" id="player_list" style="margin-left: 10px; padding: 10px; background-color: #000;">
 						<div class="textfield player-list-item" style="font-size: 25px;"> 
-							<img draggable="false" src="static/symbols/demonic_blank.png" style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
+							<img draggable="false" src="static/symbols/Demonic_blank.png" style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
 							Adptus Demonic Katharine
 						</div>
 						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
@@ -45,14 +49,14 @@
 							Sigils: 1
 						</div>
 						<div class="textfield player-list-item" style="font-size: 25px; text-align: left"> 
-							<img draggable="false" src="static/symbols/historical_blank.png", style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
+							<img draggable="false" src="static/symbols/Historical_blank.png", style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
 							Adptus Historical Lloyd
 						</div>
 						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
 							Sigils: 3
 						</div>
 						<div class="textfield player-list-item" style="font-size: 25px; text-align: left"> 
-							<img draggable="false" src="static/symbols/chemical_blank.png", style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
+							<img draggable="false" src="static/symbols/Hhemical_blank.png", style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
 							Adptus Chemical Josef
 						</div>
 						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
@@ -63,10 +67,10 @@
 					
 					<div class="ui-title">Your Sigils</div>
 					
-					<div class="textfield" id="sigil_box" style="height: 100px; margin: 10px; background-color: #000; text-align: center; font-size: 25px; color: #777">
-						<img draggable="false" class="button" src="static/symbols/sigil_S.png", style="">
+					<div class="textfield" id="sigil_box" style="height: 140px; margin: 10px; background-color: #000; text-align: center; font-size: 25px; color: #777">
+						<!-- <img draggable="false" class="button" src="static/symbols/sigil_S.png", style="">
 						<img draggable="false" class="button" src="static/symbols/sigil_T.png", style="">
-						<img draggable="false" class="button" src="static/symbols/sigil_A.png", style="">
+						<img draggable="false" class="button" src="static/symbols/sigil_A.png", style=""> -->
 						<!-- Keep exploring to find more Sigils -->
 						<div id="sigils_text" style="font-size: 18px; color: #bbb;">Teleport to your team's starting hex.</div>
 					</div>
