@@ -4,6 +4,8 @@ var game = {
 	state: 'login',
 	players: {},
 	player_order: [],
+	current_player: 0,
+	sigils: new Set(),
 }
 
 
@@ -13,6 +15,7 @@ function Player(name, colour_id) {
 	this.mouseGhost = undefined;
 	this.num_sigils = 0;
 	this.history = Array(HISTORY_LENGTH).fill(null);
+	this.currently_marked_cells = new Set();
 }
 
 
@@ -30,21 +33,18 @@ function setupGame(start_args) {
 		);
 	});
 	console.log(game.players);
+	game.current_player = 0;
 
-
-	document.addEventListener('mousedown', e => {
-
-	    let x = scaleByPixelRatio(e.offsetX) / canvas.width;
-	    let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
-	    // createNoiseAnimation(x, y, randomColour());
-		
-		// socket.emit('tmp_mouseclick', [x, y]);
-		// createAttackAnimation(x, y, randomColour(), randomColour());
-
-	});
 
 	setupMousePointers();
-	
+
+	// document.addEventListener('mousedown', e => {
+	//     let x = scaleByPixelRatio(e.offsetX) / canvas.width;
+	//     let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
+	//     // createNoiseAnimation(x, y, randomColour());
+	//     createAttackAnimation(x, y, randomColour(), randomColour());
+
+	// });
 }	
 
 function setupMousePointers() {
@@ -73,6 +73,13 @@ function setupMousePointers() {
 
 // ---------------------------- Transitions? ----------------------------- //
 
+const transition_functions = {
+	noise: noise_transition,
+	attack: attack_transition,
+}
+var transition_in_progress = false;
+
+
 function setGameState(new_state) {
 	for (const [name, player] of Object.entries(new_state.players)) {
 		game.players[name].history = player.history;
@@ -80,11 +87,6 @@ function setGameState(new_state) {
 	}
 }
 
-const transition_functions = {
-	noise: noise_transition,
-	attack: attack_transition,
-}
-var transition_in_progress = false;
 
 socket.on('state_transition', (args) => {
 	state_transistions.push({
@@ -122,7 +124,29 @@ function runTransitions() {
 
 
 function noise_transition(data) {
-	createNoiseAnimation(data.x, data.y, randomColour());
+	let player = game.players[data.player_name];
+	createNoiseAnimation(data.x, data.y, COLOURS[player.colour_id]);
+
+	let marked_cells = new Set();
+	for (let i = data.history.length - 1; i >= 0 ; --i) {
+		let event = data.history[i];
+		if (event === null) 
+			continue;
+		let [event_type, cell_row, cell_col] = event;
+		let cell = board.cells[cell_row][cell_col];
+		cell.transition_noise_token(player.colour_id, i, 'blank');
+		marked_cells.add(1000*cell_row + cell_col);
+	}
+
+	let disused = player.currently_marked_cells.difference(marked_cells);
+	disused.forEach((k) => {
+		let row = Math.floor(k / 1000);
+		let col = k % 1000;
+		let cell = board.cells[row][col];
+		cell.transition_noise_token(player.colour_id, null);
+	});
+	player.currently_marked_cells = marked_cells;
+
 	return 3000;
 }
 

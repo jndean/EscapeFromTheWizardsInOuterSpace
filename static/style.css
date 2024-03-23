@@ -27,10 +27,84 @@ html, body {
 .button:hover {
   opacity: 0.7;
 }
+
 .clicky {
   border: revert;
   border-color: white;
 }
+
+.sigil {
+  transition-property: opacity, transform;
+  transition-duration: 0.3s, 0.3s;
+  /* animation: hue-rock infinite 3s ease-in-out; */
+}
+.sigil:hover {
+  transform: scale(1.06);
+  opacity: 1;
+  /* animation: hue-rock infinite 0.07s ease-in-out; */
+}
+.sigil:active:hover {
+  opacity: 1;
+  transform: scale(0.8);
+  /* animation: none; */
+}
+
+
+@keyframes shrink-fade {
+  0% {
+    width: 80px;
+    height: 80px;
+    opacity: 100%;
+  }
+  50% {
+    width: 80px;
+    height: 80px;
+    opacity: 0%;
+  }
+  100% {
+    width: 0px;
+    height: 0px;
+    opacity: 0%;
+  }
+}
+
+@keyframes grow-appear {
+  0% {
+    width: 3px;
+    height: 3px;
+    opacity: 0%;
+    margin-bottom: 40px;
+  }
+  50% {
+    width: 80px;
+    height: 80px;
+    opacity: 0%;
+    margin-bottom: 0px;
+  }
+  100% {
+    width: 80px;
+    height: 80px;
+    opacity: 100%;
+    margin-bottom: 0px;
+  }
+}
+
+@keyframes hue-rock {
+  0% {
+    filter: hue-rotate(0deg);
+    transform: scale(1);
+  }
+  50% {
+    filter: hue-rotate(-20deg);
+    transform: scale(1.02);
+  }
+  100% {
+    filter: hue-rotate(20deg);
+    transform: scale(1);
+  }
+}
+
+
 
 .textfield {
     font-family: magic_font;
@@ -68,7 +142,7 @@ html, body {
   height: 17px;
   width: 17px;
 
-  transition-duration: 1s;
+  transition-duration: 1s, 1s;
   transition-property: opacity, src;
 }
 
@@ -80,30 +154,52 @@ html, body {
     float: right;
 }
 
+.player-list-item {
+  font-size: 25px;
+  padding-bottom: 10px;
+}
+
+.player-list-icon {
+  vertical-align: middle; 
+  width: 33px;
+  height: 33px;
+  /* opacity: 75%; */
+  margin-right: 10px;
+  animation: spinning 20s infinite linear;
+}
 td {
     padding-top: 40px;
 }
 
 
-.rotatingimg {
+.active-player-list-icon {
   vertical-align: middle;
   width: 33px;
   height: 33px;
-  animation: pulsing 3s infinite ease-in-out;
+  margin-right: 10px;
+  animation: pulsing 0.9s infinite ease-in-out;
 }
 
 @keyframes pulsing {
   0% {
     transform: scale(1);
-    opacity: 60%;
+    /* opacity: 95%; */
   }
   50% {
-    transform: scale(1.05);
-    opacity: 100%;
+    transform: scale(1.1);
+    /* opacity: 100%; */
   }
   100% {
     transform: scale(1);
-    opacity: 60%;
+    /* opacity: 95%; */
+  }
+}
+@keyframes spinning {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -125,7 +221,6 @@ td {
 
 .ui-title {
   text-align: center;
-  margin-bottom: 9px;
   padding: 2px;
   border-color: #000;
   background-color: #181818;

@@ -11,9 +11,7 @@
 	            <div class="board-layer" id="underlay">
 
 	            	<img class="board-layer" id="map_image" style="display: none">
-	            	<div class="board-layer" id="map_counters">
-						<img class="noise-token" src="static/symbols/Natural.png" style="top: 100px; left: 300px;">
-					</div>
+	            	<div class="board-layer" id="map_counters"></div>
 	            	<div class="board-layer" id="map_counter_labels"></div>
 	            	<canvas class="board-layer" id="map_canvas"></canvas>
 
@@ -30,49 +28,17 @@
 
 	        <div class="sidepanel" id="sidepanel">
 	        	<div class="textfield lore-field" id="lore_field" style="display: none"></div>
-	        	<div class="textfield" id="UI_div" style="display: block; margin: 5px;">
+	        	<div class="textfield" id="UI_div" style="display: block; margin-left: 5px; margin-right: 5px;">
 
-					<div class="ui-title">Wizards & Warlocks</div>
-					<div class="textfield player-list" id="player_list" style="margin-left: 10px; padding: 10px; background-color: #000;">
-						<div class="textfield player-list-item" style="font-size: 25px;"> 
-							<img draggable="false" src="static/symbols/Demonic_blank.png" style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
-							Adptus Demonic Katharine
-						</div>
-						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
-							Sigils: 0
-						</div>
-						<div class="textfield player-list-item" style="font-size: 25px; text-align: left"> 
-							<img draggable="false" class="rotatingimg" src="static/symbols/Mechanical.png"style="padding-right: 10px">
-							Adptus Mechanical Sean
-						</div>
-						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
-							Sigils: 1
-						</div>
-						<div class="textfield player-list-item" style="font-size: 25px; text-align: left"> 
-							<img draggable="false" src="static/symbols/Historical_blank.png", style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
-							Adptus Historical Lloyd
-						</div>
-						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
-							Sigils: 3
-						</div>
-						<div class="textfield player-list-item" style="font-size: 25px; text-align: left"> 
-							<img draggable="false" src="static/symbols/Hhemical_blank.png", style="vertical-align:middle; width: 33px; height: 33px; opacity: 50%; padding-right: 10px">
-							Adptus Chemical Josef
-						</div>
-						<div class="textfield player-list-desc" style="padding-bottom: 10px; font-size: 20px; text-align: left; padding-left: 80px;"> 
-							Sigils: 3
-						</div>
-					</div>
+					<div class="ui-title" style="margin: 0px;">Wizards & Warlocks</div>
+					<div class="textfield player-list" id="player_list" style="margin-left: 10px; padding: 10px; height: 260px;"></div>
 
 					
 					<div class="ui-title">Your Sigils</div>
 					
-					<div class="textfield" id="sigil_box" style="height: 140px; margin: 10px; background-color: #000; text-align: center; font-size: 25px; color: #777">
-						<!-- <img draggable="false" class="button" src="static/symbols/sigil_S.png", style="">
-						<img draggable="false" class="button" src="static/symbols/sigil_T.png", style="">
-						<img draggable="false" class="button" src="static/symbols/sigil_A.png", style=""> -->
-						<!-- Keep exploring to find more Sigils -->
-						<div id="sigils_text" style="font-size: 18px; color: #bbb;">Teleport to your team's starting hex.</div>
+					<div class="textfield" id="sigil_box" style="height: 120px; margin: 10px; background-color: #000; text-align: center;">
+						<div id="no_sigils_msg" style="font-size: 25px; color: #777; opacity: 0;"></div>
+						<div id="sigils_text" style="font-size: 18px; color: #bbb;"></div>
 					</div>
 
 					<div class="ui-title">Actions</div>

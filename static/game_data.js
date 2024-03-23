@@ -89,7 +89,7 @@ const SIGIL_NAMES = [
 	'Aggression',
 	'Transposition',
 	'Silence',
-	'Illumination',
+	'Detection',
 	'Resilience',
 	'Momentum',
 ];
@@ -98,9 +98,9 @@ const SIGIL_DESCRIPTIONS = [
 	'Aggression:<br> Attack in the current hex.',
 	'Transposition:<br> Teleport to your starting hex.',
 	'Silence:<br> You won\'t disturb the aether this turn.',
-	'Illumination: Reveal players on or adjacent to a chosen hex.',
-	'Resilience: Passive - you will automatically survive 1 attack.',
-	'Momentum: Move twice as far this turn.',
+	'Detection:<br> Reveal players on or adjacent to a chosen hex.',
+	'Resilience: (Passive) <br> You will automatically survive 1 attack.',
+	'Momentum:<br> Move twice as far this turn.',
 ];
 
 

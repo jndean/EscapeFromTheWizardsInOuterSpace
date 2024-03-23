@@ -32,6 +32,7 @@ function GridCell(row, column) {
 	this.noise_tokens = {};
 	this.player_token = null;
 	this.noise_token_positions = {};
+	this.current_noise_symbols = {};
 	this.unused_positions = [0, 1, 2, 3, 4, 5];
 	shuffle(this.unused_positions);
 
@@ -72,7 +73,6 @@ function GridCell(row, column) {
 
 	this.colour_to_position = function(colour_id) {
 		if (!(colour_id in this.noise_token_positions)) {
-			console.log('Picking new position from options:', this.unused_positions);
 			const r = 0.6;
 			let angle = 2 * HEX_ANGLE * this.unused_positions.pop();
 			let x = this.x + (HEX_RECT_WIDTH - NOISE_TOKEN_SIZE) / 2;
@@ -96,25 +96,24 @@ function GridCell(row, column) {
 			let [x, y] = this.colour_to_position(colour_id);
 			token.style.left = x + 'px';
 			token.style.top = y + 'px';
+			token.style.opacity = 0;
 			map_counters_layer.appendChild(token);
 		}
 
+		// TODO: Record in this.current_noise_symbols, always fade out current symbol then fade in new symbol
 		let symbol_id = token_id + '_symbol';
 		let symbol = document.getElementById(symbol_id);
 		if (symbol === null) {
 			symbol = document.createElement('img');
 			symbol.className = 'noise-token';
 			symbol.id = symbol_id;
-			token.style.opacity = 0.8;
+			symbol.style.opacity = 0.0;
 			symbol.style.left = token.style.left;
 			symbol.style.top = token.style.top;
 			map_counters_layer.appendChild(symbol);
 		}
 		
-		if (0 <= value || value <= 9) {
-			symbol.src = 'static/symbols/' + value + '.png';
-		}
-
+		
 		if (value == null) {
 			token.style.opacity = 0;
 			token.id += 'beingdeletedleavemealone';
@@ -123,9 +122,16 @@ function GridCell(row, column) {
 			symbol.id += 'beingdeletedleavemealone';
 			setTimeout(() => {map_counters_layer.removeChild(symbol);}, 1000);
 		} else {	
-			let min_opacity = 0.0;
+			let min_opacity = 0.1;
 			let opacity = min_opacity + (HISTORY_LENGTH - value) * ((1 - min_opacity) / HISTORY_LENGTH);
-			setTimeout(() => {token.style.opacity = opacity;}, 0);
+			setTimeout(() => {
+				token.style.opacity = opacity;
+				symbol.style.opacity = 0.8;
+			}, 100); // Makes sure ther's aneough time for the opacity=0 to take effect
+
+			if (0 <= value || value <= 9) {
+				symbol.src = 'static/symbols/' + value + '.png';
+			}
 		}
 	}
 }
@@ -201,18 +207,15 @@ function Board() {
 				
 		});
 
-		this.tmp_count = 0;
+		// this.tmp_count = 0;
 		this.cell_select_mousedown_handle = overlay.addEventListener('mousedown', e => {
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
 			if (cell === null) return;
-			console.log('cell:', [cell.row, cell.col]);
-			// TMP: deletem
-			this.tmp_count = (10 + this.tmp_count - 1) % 10;
-			console.log(this.tmp_count);
-			cell.transition_noise_token(
-				Math.floor(6 * Math.random()), 
-				this.tmp_count
-			);
+			// console.log('cell:', [cell.row, cell.col]);
+
+			let x = scaleByPixelRatio(e.offsetX) / canvas.width;
+			let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
+			socket.emit('tmp_mouseclick', [x, y, cell.row, cell.col]);
 		});
 
 		this.cell_select_mouseout_handle = overlay.addEventListener('mouseout', e => {

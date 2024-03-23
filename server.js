@@ -26,6 +26,7 @@ var game = {
 	sockets: {},
 	players: {},
 	player_order: [],
+	current_player: 0,
 };
 
 var lobby = {
@@ -50,8 +51,6 @@ function Player(name, colour_id, warlock) {
 	this.sigils = [];
 
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
-	this.history[9] = ['noise', 3, 3];   // TMP: DELETEME
-	this.history[7] = ['noise', 5, 5];   // TMP: DELETEME
 }
 
 
@@ -140,11 +139,21 @@ io.on('connection', (socket) => {
 	});
 
 	socket.on('tmp_mouseclick', (args) => {
-		console.log(args);
-		let [x, y] = args;
+		if (game.phase == 'lobby') return;
+		let [x, y, cell_row, cell_col] = args;
+
+		let player = game.players[player_name];
+		player.history.pop();
+		player.history.unshift(['noise', cell_row, cell_col]);
+		// OR // player.history.unshift(null);
+
 		broadcast_game_state_transition('noise', {
 			x: x,
 			y: y,
+			cell_row: cell_row,
+			cell_col: cell_col,
+			player_name: player.name,
+			history: player.history,
 		})
 	});
 });
@@ -183,6 +192,7 @@ var mousePollHandle = undefined;
 function start_new_game(map_name) {
 	// Wizards & Warlocks: Trouble in the Great Library?
 	console.log('Starting game with map: ' + map_name);
+	game.phase = 'game'; // CHANGEME LATER	
 
 	// Shuffle role cards
 	var roles = new Array(lobby.taken_colours.size).fill(false);
