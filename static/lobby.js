@@ -56,11 +56,13 @@ socket.on('join_lobby', (name) => {
 		document.body.requestFullscreen().then((_) => {
 			game_view.style.opacity = '1';
 			if (!debug_mode) game_view.style.animation = 'fadeIn ease 5s';
-		});}
+		});
+	}
 	
 	player_name = name;
 	destroy(join_div);
-	game.state = 'lobby';
+	game.phase = 'lobby';
+	document.getElementById("board_container").style.cursor = 'none';
 	
 	for (var i = 0; i < 8; ++i) {
 		create_character_selection_box(i);
@@ -70,6 +72,10 @@ socket.on('join_lobby', (name) => {
 	lobbyFluidCurrentsAnimation.register();
 	mousePointer.down = true;
 	mousePointer.color = colourFromHSV(0, 0, 0.2);
+
+	setTimeout(() => {
+		displayBannerMessage("Choose your Character", 6000);
+	}, 2000);
 });
 
 
@@ -80,13 +86,11 @@ function create_character_selection_box(i) {
 	var a = new AnimationCharacterDither(x, 1-y, COLOURS[i]);
 	a.register();
 
-	var box = document.createElement('div');
-	box.className = 'character-select-box';
 	var box_width = 160;
 	var box_height = 150;
 	var left = Math.floor(x * overlay.clientWidth);
 	var top = Math.floor(y * overlay.clientHeight - box_height/2);
-
+	
 	var name_box = document.createElement('div');
 	name_box.className = "character-name-box";
 	overlay.appendChild(name_box);
@@ -112,7 +116,7 @@ function create_character_selection_box(i) {
 }
 
 socket.on('lobby_state', state => {
-	if (game.state != 'lobby') return;
+	if (game.phase != 'lobby') return;
 
 	for (var colour = 0; colour < 8; ++colour) {
 		var opt = character_selection_options[colour];
@@ -177,28 +181,3 @@ function generate_lobby_text(lobby_state) {
 function start(map_name='Galilei') {
 	socket.emit('start', map_name);
 }
-
-
-socket.on('start', start_args => {
-	if (game.state != 'lobby') return;
-	
-	lobbyFluidCurrentsAnimation.unregister();
-	lobbyFluidCurrentsAnimation = null;
-	gameStartAnimation(character_selection_options);
-
-	for (opt of character_selection_options) {
-		opt.animation.unregister();
-		destroy(opt.name_box);
-	}
-
-	map_image.src = 'static/maps/galilei_map_tests.png';
-	map_image.style.animation = 'rectifiedFadeIn ease 4s';
-	show(map_image);
-	wallsTexture = galileiWallsTexture;
-	
-	lore_field.style.animation = 'fadeOut ease 5s';
-	setTimeout(() => {destroy(lore_field); setupGame(start_args);}, 5000);
-
-});
-
-

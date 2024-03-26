@@ -48,7 +48,7 @@ function Player(name, colour_id, warlock) {
 		this.current_row = GameData.GALILEI_WARLOCK_SPAWN[0];
 		this.current_col = GameData.GALILEI_WARLOCK_SPAWN[1];
 	}
-	this.sigils = [];
+	this.sigils = new Set();
 
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
 }
@@ -140,7 +140,7 @@ io.on('connection', (socket) => {
 
 	socket.on('tmp_mouseclick', (args) => {
 		if (game.phase == 'lobby') return;
-		let [x, y, cell_row, cell_col] = args;
+		let [cell_row, cell_col] = args;
 
 		let player = game.players[player_name];
 		player.history.pop();
@@ -148,8 +148,6 @@ io.on('connection', (socket) => {
 		// OR // player.history.unshift(null);
 
 		broadcast_game_state_transition('noise', {
-			x: x,
-			y: y,
 			cell_row: cell_row,
 			cell_col: cell_col,
 			player_name: player.name,
@@ -209,32 +207,46 @@ function start_new_game(map_name) {
 	shuffle(game.player_order);
 	lobby.sockets = {};
 	
-	io.sockets.emit('start', {
+	// Starting the game is a 2-part, 2-message process
+	broadcast_game_state_transition('start_game_init_state', {
 		map_name: map_name,
 		player_order: game.player_order,
 		player_to_colour: lobby.player_to_colour,
 	});
+	broadcast_game_state_transition('start_game_animation', {});
 
 	mousePollHandle = setInterval(broadcast_mouse_positions, 100);
 }
 
-function broadcast_game_state_transition(name, data) {
-	// Serialise the game state
-	let state_data = {
+function broadcast_game_state_transition(transition_name, data) {
+	// Serialise the game state.
+	// Start with state given to all players
+	let common_state = {
+		current_player: game.current_player,
 		players: {}
 	};
 	for (const [name, player] of Object.entries(game.players)) {
-		state_data.players[name] = {
-			num_sigils: player.sigils.length,
+		common_state.players[name] = {
+			num_sigils: player.sigils.size,
 			history: player.history,
 		}
 	}
 
-	io.sockets.emit('state_transition', {
-		name: name,
-		data: data,
-		new_state: state_data,
-	});
+	// Next customise the state with player-specific (secret) data
+	for (const [name, socket] of Object.entries(game.sockets)) {
+		if (socket == null) continue;
+		
+		let player = game.players[name];
+		let state = {...common_state};
+		state.sigils = Array.from(player.sigils);
+		state.is_warlock = player.is_warlock;
+
+		socket.emit('state_transition', {
+			name: transition_name,
+			data: data,
+			new_state: state,
+		});
+	}
 }
 
 // -------------- Utilities -------------- //

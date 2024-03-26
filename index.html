@@ -7,28 +7,27 @@
     </head>
     <body>
     	<div class="centered game" id="game_view">
-	        <div class="board board-shaped">
-	            <div class="board-layer" id="underlay">
+	        <div class="board board-shaped" id="board_container">
 
+	            <div class="board-layer" id="underlay">
 	            	<img class="board-layer" id="map_image" style="display: none">
 	            	<div class="board-layer" id="map_counters"></div>
 	            	<div class="board-layer" id="map_counter_labels"></div>
 	            	<canvas class="board-layer" id="map_canvas"></canvas>
-
 	            </div>
 
 	            <canvas class="board-layer" id="simulation_canvas"></canvas>
 
 	            <div class="board-layer" id="overlay">
-
+					<div class="message-banner" id="message_banner">You must flee.</div>
 	       
 	            </div>
 	        </div>
 
 
 	        <div class="sidepanel" id="sidepanel">
-	        	<div class="textfield lore-field" id="lore_field" style="display: none"></div>
-	        	<div class="textfield" id="UI_div" style="display: block; margin-left: 5px; margin-right: 5px;">
+	        	<div class="textfield lore-field" id="lore_field" style="display: block"></div>
+	        	<div class="textfield" id="UI_div" style="display: none; margin-left: 5px; margin-right: 5px;">
 
 					<div class="ui-title" style="margin: 0px;">Wizards & Warlocks</div>
 					<div class="textfield player-list" id="player_list" style="margin-left: 10px; padding: 10px; height: 260px;"></div>
@@ -37,7 +36,7 @@
 					<div class="ui-title">Your Sigils</div>
 					
 					<div class="textfield" id="sigil_box" style="height: 120px; margin: 10px; background-color: #000; text-align: center;">
-						<div id="no_sigils_msg" style="font-size: 25px; color: #777; opacity: 0;"></div>
+						<div id="no_sigils_msg" style="font-size: 22px; color: #777; opacity: 0;"></div>
 						<div id="sigils_text" style="font-size: 18px; color: #bbb;"></div>
 					</div>
 

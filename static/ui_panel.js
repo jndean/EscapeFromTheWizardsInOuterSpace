@@ -103,7 +103,6 @@ function updateUIpanel() {
             }, 800);
         }
     });
-    
     let no_sigil_msg_field = document.getElementById('no_sigils_msg');
     if (game.sigils.size) {
         no_sigil_msg_field.textContent = '';
@@ -118,3 +117,42 @@ function updateUIpanel() {
     }
 }
 
+
+// -----------  Message Banner -------- //
+
+var banner_div = document.getElementById("message_banner");
+var banner_msg_queue = [];
+
+function displayBannerMessage(msg, duration, font_size=60) {
+    banner_msg_queue.unshift([msg, duration, font_size]);
+    runBannerMessageDispatcher();
+}
+
+var banner_msg_is_active = false;
+function runBannerMessageDispatcher() {
+    if (banner_msg_is_active || banner_msg_queue.length == 0) {
+        return;
+    }
+    banner_msg_is_active = true;
+    let [msg, duration, font_size] = banner_msg_queue.pop();
+    
+    banner_div.innerHTML = msg;
+    banner_div.style.fontSize = font_size + 'px';
+    banner_div.style.opacity = 0.8;
+    
+    const opacity_transition_time = 2000; // Set in style.css
+    let fade_start = Math.max(
+        duration - opacity_transition_time,
+        duration / 2
+    );
+    setTimeout(() => {
+        banner_div.style.opacity = 0;
+    }, fade_start);
+
+    setTimeout(() => {
+        banner_msg_is_active = false;
+        runBannerMessageDispatcher();
+    }, duration);
+};
+
+// -------------------------------------- //

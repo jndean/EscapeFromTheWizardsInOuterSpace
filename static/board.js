@@ -1,5 +1,6 @@
 var map_canvas = document.getElementById('map_canvas');
 var map_counters_layer = document.getElementById('map_counters');
+var overlay = document.getElementById('overlay');
 map_canvas.width = 1260;
 map_canvas.height = 910;
 var map_canvas_ctx = map_canvas.getContext('2d');
@@ -213,9 +214,7 @@ function Board() {
 			if (cell === null) return;
 			// console.log('cell:', [cell.row, cell.col]);
 
-			let x = scaleByPixelRatio(e.offsetX) / canvas.width;
-			let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
-			socket.emit('tmp_mouseclick', [x, y, cell.row, cell.col]);
+			socket.emit('tmp_mouseclick', [cell.row, cell.col]);
 		});
 
 		this.cell_select_mouseout_handle = overlay.addEventListener('mouseout', e => {
