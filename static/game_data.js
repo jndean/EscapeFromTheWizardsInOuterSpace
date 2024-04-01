@@ -95,7 +95,7 @@ const SIGIL_NAMES = [
 ];
 
 const SIGIL_DESCRIPTIONS = [
-	'Aggression:<br> Attack in the current hex.',
+	'Aggression:<br> You may Attack in your current hex after moving.',
 	'Transposition:<br> Teleport to your starting hex.',
 	'Silence:<br> You won\'t disturb the aether this turn.',
 	'Detection:<br> Reveal players on or adjacent to a chosen hex.',

@@ -4,6 +4,8 @@ var player_name = null;
 var holding_breath = false;
 var board_scale = 1;
 var game_view = document.getElementById("game_view");
+var board = undefined;
+var game = undefined;
 
 var debug_mode = true;
 

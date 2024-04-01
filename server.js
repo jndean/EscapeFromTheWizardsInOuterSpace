@@ -26,7 +26,8 @@ var game = {
 	sockets: {},
 	players: {},
 	player_order: [],
-	current_player: 0,
+	current_player: null,
+	moved_this_turn: false,
 };
 
 var lobby = {
@@ -152,7 +153,24 @@ io.on('connection', (socket) => {
 			cell_col: cell_col,
 			player_name: player.name,
 			history: player.history,
-		})
+		});
+	});
+
+	socket.on('request_move', (args) => {
+		if (game.phase != 'game') return;
+		if (player_name != game.player_order[game.current_player]) return;
+		if (game.moved_this_turn) return;
+
+		let player = game.players[player_name];
+		player.current_row = args.row;
+		player.current_col = args.col;
+		game.moved_this_turn = true;
+		
+		broadcast_game_state_transition(
+			'move',
+			{row: args.row, col: args.col}, 
+			individual=player_name
+		);
 	});
 });
 
@@ -190,15 +208,14 @@ var mousePollHandle = undefined;
 function start_new_game(map_name) {
 	// Wizards & Warlocks: Trouble in the Great Library?
 	console.log('Starting game with map: ' + map_name);
-	game.phase = 'game'; // CHANGEME LATER	
-
+	
 	// Shuffle role cards
 	var roles = new Array(lobby.taken_colours.size).fill(false);
 	for (let i = 0; i < Math.ceil(roles.length / 2); ++i) {
 		roles[i] = true;
 	}
 	shuffle(roles);
-
+	
 	for (const [name_, colour_id] of Object.entries(lobby.player_to_colour)) {
 		game.players[name_] = new Player(name_, colour_id, roles.pop());
 		game.player_order.push(name_);
@@ -208,22 +225,35 @@ function start_new_game(map_name) {
 	lobby.sockets = {};
 	
 	// Starting the game is a 2-part, 2-message process
+	game.phase = 'starting';
 	broadcast_game_state_transition('start_game_init_state', {
 		map_name: map_name,
 		player_order: game.player_order,
 		player_to_colour: lobby.player_to_colour,
 	});
+	game.current_player = 0;
+	game.phase = 'game';
 	broadcast_game_state_transition('start_game_animation', {});
 
 	mousePollHandle = setInterval(broadcast_mouse_positions, 100);
 }
 
-function broadcast_game_state_transition(transition_name, data) {
+
+// -------------- Utilities -------------- //
+
+
+function broadcast_game_state_transition(
+	transition_name, 
+	data, 
+	individual=null,
+) {
 	// Serialise the game state.
 	// Start with state given to all players
 	let common_state = {
+		phase: game.phase,
 		current_player: game.current_player,
-		players: {}
+		players: {},
+		moved_this_turn: game.moved_this_turn,
 	};
 	for (const [name, player] of Object.entries(game.players)) {
 		common_state.players[name] = {
@@ -235,11 +265,14 @@ function broadcast_game_state_transition(transition_name, data) {
 	// Next customise the state with player-specific (secret) data
 	for (const [name, socket] of Object.entries(game.sockets)) {
 		if (socket == null) continue;
+		if ((individual !== null) && (name != individual)) continue;
 		
 		let player = game.players[name];
 		let state = {...common_state};
 		state.sigils = Array.from(player.sigils);
 		state.is_warlock = player.is_warlock;
+		state.player_row = player.current_row;
+		state.player_col = player.current_col;
 
 		socket.emit('state_transition', {
 			name: transition_name,
@@ -248,9 +281,6 @@ function broadcast_game_state_transition(transition_name, data) {
 		});
 	}
 }
-
-// -------------- Utilities -------------- //
-
 
 function shuffle(a) {
     for (let i = a.length - 1; i > 0; i--) {

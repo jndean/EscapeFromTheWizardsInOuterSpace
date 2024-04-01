@@ -1,11 +1,14 @@
 var state_transistions = [];
 
-var game = {
+game = {
 	phase: 'login',
 	players: {},
 	player_order: [],
-	current_player: 0,
+	current_player: null,
 	sigils: new Set(),
+	moved_this_turn: false,
+	player_col: undefined,
+	player_row: undefined,
 }
 
 
@@ -19,30 +22,7 @@ function Player(name, colour_id) {
 }
 
 
-// ------------------------------ Game Start -------------------------- //
-
-function setupGame(start_args) {
-	game.phase = 'game'; // Change me later
-
-	start_args.player_order.forEach((name_) => {
-		game.players[name_] = new Player(
-			name_, 
-			start_args.player_to_colour[name_],
-		);
-	});
-	game.current_player = 0;
-
-
-	setupMousePointers();
-
-	// document.addEventListener('mousedown', e => {
-	//     let x = scaleByPixelRatio(e.offsetX) / canvas.width;
-	//     let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
-	//     // createNoiseAnimation(x, y, randomColour());
-	//     createAttackAnimation(x, y, randomColour(), randomColour());
-
-	// });
-}	
+// ------------------------------ Setup -------------------------- //
 
 function setupMousePointers() {
 
@@ -68,25 +48,74 @@ function setupMousePointers() {
 	});
 }
 
+
+// ---------------------------- Player Actions ----------------------------- //
+
+var actionBtnHandlers = {};
+
+
+actionBtnHandlers['move'] = function () {
+	board.begin_cell_selector(moveHexSelectedCallback);
+	actionBox.update('choose_move_hex');
+	actionBtnHandlers['confirm'] = confirmMoveButtonHandler;
+}
+
+function moveHexSelectedCallback() {
+	actionBox.update('choose_move_hex_confirm');
+}
+
+// Specific handler for different confirm buttons.
+function confirmMoveButtonHandler () {
+	socket.emit('request_move', {
+		row: board.current_selection.row,
+		col: board.current_selection.col,
+	});
+	board.end_cell_selector();
+	actionBox.update('choose_move_hex');
+}
+
+actionBtnHandlers['cancel'] = function () {
+	board.end_cell_selector();
+	actionBox.update('choose_action');
+}
+
+
 // ---------------------------- Transition System ----------------------------- //
 
 
 function setGameState(new_state) {
 	if (new_state === null) {
-		return; // For when transitiosn are just used to queue animtions, not modify game state.
+		return; // For when transitions are just used to queue animtions, not modify game state.
 	}
+	let player_changed = (game.current_player != new_state.current_player);
 	game.current_player = new_state.current_player;
 	game.sigils = new Set(new_state.sigils);
 	game.is_warlock = new_state.is_warlock;
+	game.player_col = new_state.player_col;
+	game.player_row = new_state.player_row;
+	game.phase = new_state.phase;
+	game.moved_this_turn = new_state.moved_this_turn;
+
 	for (const [name, player] of Object.entries(new_state.players)) {
 		game.players[name].history = player.history;
 		game.players[name].num_sigils = player.num_sigils;
 	}
+
+	if (player_changed) {
+		if (player_name == game.player_order[game.current_player]) {
+			actionBox.update('choose_action');
+		} else {
+			actionBox.update('notmyturn');
+		}
+	}
+
+	updateUI(game);
 }
 
 
 socket.on('state_transition', (args) => {
 	state_transistions.push({
+		unskippable: unskippable_transitions.has(args.name),
 		final_state: args.new_state,
 		transition_data: args.data,
 		transition_func: transition_functions[args.name],
@@ -104,20 +133,22 @@ function runTransitions() {
 		return;
 	
 	/// Algorithm for catching up: skip some
-	const transition_cap = 3;
-	if (state_transistions.length > transition_cap) {
-		state_transistions = state_transistions.slice(-transition_cap - 1);
-		let new_state = state_transistions.shift().final_state; // = popleft
-		setGameState(new_state);
+	const transition_cap = 2;
+	let skipped_transition = null;
+	while ((state_transistions.length > transition_cap) &&
+			(!state_transistions[0].unskippable)) {
+		skipped_transition = state_transistions.shift();
+	}
+	if (skipped_transition !== null) {
+		setGameState(skipped_transition.final_state);
 	}
 	let t = state_transistions.shift();
 	
 	transition_in_progress = true;
-	let duration = t.transition_func(t.transition_data);
+	let duration = t.transition_func(t.transition_data, t.final_state);
 	setTimeout(() => {
-		setGameState(t.final_state);
 		transition_in_progress = false;
-		// updateUIpanel();   <----------------- TODO: update UI panel here?
+		setGameState(t.final_state);
 		runTransitions();
 	}, duration);
 }
@@ -125,18 +156,22 @@ function runTransitions() {
 
 // ------------------------------- Transitions! -------------------------------- //
 
+const unskippable_transitions = new Set([
+	'start_game_init_state',
+	'start_game_animation',
+])
+
 const transition_functions = {
 	start_game_init_state: start_game_init_state_transition,
 	start_game_animation: start_game_animation_transition,
+	move: move_transition,
 	noise: noise_transition,
 	attack: attack_transition,
 }
 
 
-function start_game_init_state_transition(start_args) {
-	// setupGame(start_args);
-	game.phase = 'game'; // Change me later
-
+function start_game_init_state_transition(start_args, game_state) {
+	game.player_order = start_args.player_order;
 	start_args.player_order.forEach((name_) => {
 		game.players[name_] = new Player(
 			name_, 
@@ -144,13 +179,18 @@ function start_game_init_state_transition(start_args) {
 		);
 	});
 	game.current_player = 0;
+	game.player_row = game_state.player_row;
+	game.player_col = game_state.player_col;
 
 	setupMousePointers();
+	actionBox = new ActionBox(game);
+	create_ui_components(game);
+	updateUI(game);
 
 	return 0; // No delay
 }
 
-function start_game_animation_transition(_) {
+function start_game_animation_transition(_, _) {
 	lobbyFluidCurrentsAnimation.unregister();
 	lobbyFluidCurrentsAnimation = null;
 	gameStartAnimation(character_selection_options);
@@ -188,7 +228,7 @@ function start_game_animation_transition(_) {
 	return 19000;
 }
 
-function noise_transition(data) {
+function noise_transition(data, _) {
 	let player = game.players[data.player_name];
 
 	// Noise animation
@@ -222,8 +262,14 @@ function noise_transition(data) {
 }
 
 
+function move_transition(args, _) {
+	board.end_cell_selector();
+	actionBox.update('choose_action');
+	board.move_player_token(args.row, args.col);
+	return 0;
+}
 
-function attack_transition(transition_data) {
-
+function attack_transition(transition_data, _) {
+	
 	return 4000;
 }

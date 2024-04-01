@@ -1,30 +1,29 @@
 
 var sigil_buttons = {};
 var player_icons = {};
-
-create_ui_components();
-
+var actionBox = undefined;
 
 
-function create_ui_components() {
+
+function create_ui_components(game_state) {
 
     // TMP
-    game.player_order = ['Josef', 'Katharine', 'Lloyd', 'Sean', 'Rebecca', 'Lucy'];
-    for (let i = 0; i < game.player_order.length; ++i) {
-        let name = game.player_order[i];
-        game.players[name] = new Player(name, i);
-    }
-    shuffle(game.player_order);
-    for (let i = 0; i < 3; ++i) {
-        game.sigils.add(SIGIL_NAMES[i]);
-    }
+    // game.player_order = ['Josef', 'Katharine', 'Lloyd', 'Sean', 'Rebecca', 'Lucy'];
+    // for (let i = 0; i < game.player_order.length; ++i) {
+    //     let name = game.player_order[i];
+    //     game.players[name] = new Player(name, i);
+    // }
+    // shuffle(game.player_order);
+    // for (let i = 0; i < 3; ++i) {
+    //     game.sigils.add(SIGIL_NAMES[i]);
+    // }
 
 
     // Player list
     let player_box = document.getElementById('player_list');
-    for (let i = 0; i < game.player_order.length; ++i) {
-        let player_name = game.player_order[i];
-        let player = game.players[player_name];
+    for (let i = 0; i < game_state.player_order.length; ++i) {
+        let player_name = game_state.player_order[i];
+        let player = game_state.players[player_name];
         let item = document.createElement('div');
         item.className = "textfield player-list-item";
         player_box.appendChild(item);
@@ -36,7 +35,7 @@ function create_ui_components() {
         player_icons[player_name] = icon;
         
         let name_box = document.createElement('span');
-        name_box.textContent = 'Adpt. ' + ACADEMIC_NAMES[player.colour_id] + ' ' +player.name;;
+        name_box.textContent = 'Adpt. ' + ACADEMIC_NAMES[player.colour_id] + ' ' +player.name;
         item.appendChild(icon);
         item.appendChild(name_box)
     }
@@ -67,21 +66,26 @@ function create_ui_components() {
             sigil_desc_field.textContent = '';
         };
         btn.onmousedown = function(e) {  // DELETEME PLS!
-            game.sigils.delete(name);
-            updateUIpanel();
+            game_state.sigils.delete(name);
+            updateUI();
         }
     }
-    
-    updateUIpanel();
+
+    board.create_player_token(
+        game_state.players[player_name].colour_id,
+        game_state.player_row,
+        game_state.player_col,
+    );
+
 }
 
 
-function updateUIpanel() {
+function updateUI(game_state) {
 
     // Player List
-    for (let i = 0; i < game.player_order.length; ++i) {
-        let player_name = game.player_order[i];
-        if (game.current_player == i) {
+    for (let i = 0; i < game_state.player_order.length; ++i) {
+        let player_name = game_state.player_order[i];
+        if (game_state.current_player == i) {
             player_icons[player_name].className = "active-player-list-icon";
         } else {
             player_icons[player_name].className = "player-list-icon";
@@ -91,7 +95,7 @@ function updateUIpanel() {
     // Sigils
     SIGIL_NAMES.forEach((name) => {
         let btn = sigil_buttons[name];
-        if (game.sigils.has(name)) {
+        if (game_state.sigils.has(name)) {
             if (btn.style.display == 'none') {
                 btn.style.display = '';
                 btn.style.animation = 'grow-appear 0.8s ease-in-out';
@@ -104,7 +108,7 @@ function updateUIpanel() {
         }
     });
     let no_sigil_msg_field = document.getElementById('no_sigils_msg');
-    if (game.sigils.size) {
+    if (game_state.sigils.size) {
         no_sigil_msg_field.textContent = '';
         no_sigil_msg_field.style.opacity = 0;
     } else {
@@ -115,7 +119,90 @@ function updateUIpanel() {
             no_sigil_msg_field.innerHTML = 'You have no Sigils. <br>Search dangerous spaces <br> to find more...';
         }, 800);
     }
+
+    // Player Token
+    board.move_player_token(game_state.player_row, game_state.player_col);
 }
+
+
+// -------------------- Action Box --------------------- //
+
+
+function ActionBox(game_state) {
+    this.game_state = game_state;
+
+    // this.available_actions = new Set();
+    this.act_names = ['move', 'attack', 'sigil', 'finish'];
+    this.btn_names = this.act_names.concat(['confirm', 'cancel']);
+    this.btn = {};
+    for (let i = 0; i < this.btn_names.length; ++i) {
+        let name = this.btn_names[i];
+        this.btn[name] = document.getElementById('act_btn_' + name);
+        this.btn[name].onclick = (ev) => {actionBtnHandlers[name](ev)};
+    }
+
+    this.textbox = document.getElementById("action_text");
+
+    this.possible_states = [
+        'notmyturn',
+        'choose_action',
+        'choose_move_hex',
+        'choose_move_hex_confirm',
+        'choose_sigil',
+        'choose_sigil_confirm',
+        'attack_confirm', // Say, 'This will end your turn'
+        'choose_detection_hex',
+        'choose_detection_hex_confirm',
+    ];
+
+    this.update = function(new_state_str=null) {
+        if (new_state_str != null) this.state = new_state_str;
+
+        let visible_buttons = new Set();
+        switch (this.state) {
+            case 'notmyturn':
+                this.textbox.innerHTML = '<font color="#777" size=5>It is not your turn...</font>';
+                break;
+                
+            case 'choose_action':
+                this.textbox.innerHTML = 'Choose an action...';
+                if (!this.game_state.moved_this_turn) {
+                    visible_buttons.add('move');
+                } else {
+                    visible_buttons.add('finish');
+                    if (this.game_state.is_warlock) {
+                        visible_buttons.add('attack');
+                    } else if (this.game_state.sigils.length) {
+                        visible_buttons.add('sigil');
+                    }
+                }
+                break;
+
+            case 'choose_move_hex':            
+                this.textbox.innerHTML = 'Choose a hex';
+                visible_buttons.add('cancel');
+                break;
+
+            case 'choose_move_hex_confirm':            
+                this.textbox.innerHTML = 'Choose a hex';
+                visible_buttons.add('confirm');
+                visible_buttons.add('cancel');
+                break;
+
+            default:
+                alert('Invalid ActionBox state: ' + this.state);
+                break;
+        }
+
+        for (let i = 0; i < this.btn_names.length; ++i) {
+            let name = this.btn_names[i];
+            this.btn[name].style.display = visible_buttons.has(name) ? '' : 'none';
+        }
+    }
+
+    this.update('notmyturn');
+}
+
 
 
 // -----------  Message Banner -------- //
@@ -154,5 +241,3 @@ function runBannerMessageDispatcher() {
         runBannerMessageDispatcher();
     }, duration);
 };
-
-// -------------------------------------- //

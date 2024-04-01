@@ -105,6 +105,18 @@ html, body {
 }
 
 
+.action-button {
+  background-color: inherit;
+  text-align: center;
+  cursor: pointer;
+  border: revert;
+  border-color: white;
+  margin: 5px;
+}
+.action-button:hover {
+  opacity: 0.7;
+}
+
 
 .textfield {
     font-family: magic_font;
@@ -141,8 +153,28 @@ html, body {
   height: 17px;
   width: 17px;
 
-  transition-duration: 1s, 1s;
-  transition-property: opacity, src;
+  transition-duration: 1s;
+  transition-property: opacity;
+}
+
+.player-token {
+  position: absolute;
+  height: 30px;
+  width: 30px;
+  animation: fadein 3s ease-in-out;
+
+  transition-property: top, left;
+  transition-duration: 2s;
+  transition-timing-function: ease-in-out;
+}
+
+@keyframes fadein {
+  0% {
+    opacity: 0%;
+  }
+  100% {
+    opacity: 100%;
+  }
 }
 
 

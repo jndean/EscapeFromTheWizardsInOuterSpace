@@ -5,6 +5,7 @@ map_canvas.width = 1260;
 map_canvas.height = 910;
 var map_canvas_ctx = map_canvas.getContext('2d');
 
+
 const HEX_ANGLE = 0.523598776; // 30 degrees in radians;
 const HEX_SIDE = 35;
 const HEX_WIDTH = Math.sin(HEX_ANGLE) * HEX_SIDE;
@@ -16,6 +17,7 @@ const HEX_Y_START = 13;
 const HEX_X_START = 18;
 
 const NOISE_TOKEN_SIZE = 17;  // pixels
+const PLAYER_TOKEN_SIZE = 30;  // pixels
 
 
 function GridCell(row, column) {
@@ -128,7 +130,7 @@ function GridCell(row, column) {
 			setTimeout(() => {
 				token.style.opacity = opacity;
 				symbol.style.opacity = 0.8;
-			}, 100); // Makes sure ther's aneough time for the opacity=0 to take effect
+			}, 100); // Makes sure there's enough time for the opacity=0 to take effect
 
 			if (0 <= value || value <= 9) {
 				symbol.src = 'static/symbols/' + value + '.png';
@@ -142,6 +144,8 @@ function Board() {
 	this.num_rows = 14;
 	this.num_cols = 23;
 	this.cells = [];
+	this.current_selection = null;
+	this.current_mouseover = null;
 
 	for (var y= 0 ; y < this.num_rows; ++y) {
 		let row = [];
@@ -149,6 +153,21 @@ function Board() {
 			row.push(new GridCell(y, x));
 		}
 		this.cells.push(row);
+	}
+
+	this.create_player_token = function(colour_id, row, col) {	
+		this.player_token = document.createElement('img');
+		this.player_token.className = 'player-token';
+		this.player_token.src = 'static/symbols/' + ACADEMIC_NAMES[colour_id] + '.png';
+		let cell = this.cells[row][col];
+		map_counters_layer.appendChild(this.player_token);
+		this.move_player_token(row, col);
+	}
+
+	this.move_player_token = function(row, col) {
+		let [x, y] = this.cells[row][col].center_coords;
+		this.player_token.style.left = (x - PLAYER_TOKEN_SIZE / 2) + 'px';
+    	this.player_token.style.top = (y - PLAYER_TOKEN_SIZE / 2) + 'px';
 	}
 
 	// Given global mouse coords, returns the corresponding board cell, or null.
@@ -190,51 +209,65 @@ function Board() {
 		return this.cells[row][col];
 	}
 
-	this.begin_cell_selector = function() {
+	this.begin_cell_selector = function(result_callback) {
 
 		this.epoch = performance.now();
-		// requestAnimationFrame(()=>this.cell_pulse());
 
-		this.cell_select_mousemove_handle = overlay.addEventListener('mousemove', e => {
-			map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-
+		this.cell_select_mousemove_handle = (e) => {
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
-			if (cell === null) return;
-
+			if (cell === this.current_mouseover) return;
+			this.current_mouseover = cell;
+	
+			map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
+			if (cell === null || cell.is_wall) return;
 			if (cell.is_safe)
 				cell.draw('#00ff0020', '#00ff0050', 3);
-			else if (!cell.is_wall)
+			else
 				cell.draw('#ff000018', '#ff000050', 3);
+
+			// Redraw selected hex here too?
 				
-		});
+		};
+		overlay.addEventListener('mousemove', this.cell_select_mousemove_handle);
 
-		// this.tmp_count = 0;
-		this.cell_select_mousedown_handle = overlay.addEventListener('mousedown', e => {
+		this.cell_select_mousedown_handle = (e) => {
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
-			if (cell === null) return;
-			// console.log('cell:', [cell.row, cell.col]);
+			if (cell === null || cell.is_wall) return;
 
-			socket.emit('tmp_mouseclick', [cell.row, cell.col]);
-		});
+			this.current_selection = cell;
+			requestAnimationFrame(()=>this.draw_selections());
+			result_callback();
+			// TMP
+			// socket.emit('tmp_mouseclick', [cell.row, cell.col]);
+			// let [x, y] = cell.center_coords;
+			// this.player_token.style.left = (x - PLAYER_TOKEN_SIZE / 2) + 'px';
+			// this.player_token.style.top = (y - PLAYER_TOKEN_SIZE / 2) + 'px';
+		};
+		overlay.addEventListener('mousedown', this.cell_select_mousedown_handle);
 
-		this.cell_select_mouseout_handle = overlay.addEventListener('mouseout', e => {
+		this.cell_select_mouseout_handle = (e) => {
 			map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-		});
+		};
+		overlay.addEventListener('mouseout', this.cell_select_mouseout_handle);
+		
+		requestAnimationFrame(()=>this.draw_selections());
 	}
 
 	this.end_cell_selector = function() {
+		this.current_selection = null;
 		overlay.removeEventListener('mousemove', this.cell_select_mousemove_handle);
 		overlay.removeEventListener('mousedown', this.cell_select_mousedown_handle);
 		overlay.removeEventListener('mouseout', this.cell_select_mouseout_handle);
 	}
 
-	// this.cell_pulse = function() {
-	// 	map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-	// 	let alpha = Math.floor(128 + 64 * Math.sin((performance.now() - this.epoch) / 1000));
-	// 	let colour = '#00ffff' + alpha.toString(16).padStart(2, '0');
-	// 	this.cells[1][1].draw('#00000000', colour, 3);
-	// 	requestAnimationFrame(()=>this.cell_pulse());
-	// }
+	this.draw_selections = function() {
+		if (this.current_selection == null) return;
+		map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
+		let alpha = Math.floor(128 + 64 * Math.sin((performance.now() - this.epoch) / 200));
+		let colour = '#00ffff' + alpha.toString(16).padStart(2, '0');
+		this.current_selection.draw('#00000000', colour, 3);
+		requestAnimationFrame(()=>this.draw_selections());
+	}
 
 	this.get_cell_neighbours = function(cell) {
 		if (cell.col % 2) {
@@ -276,5 +309,5 @@ function Board() {
 	}
 }
 
-var board = new Board();
-board.begin_cell_selector();
+
+board = new Board();
