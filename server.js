@@ -43,11 +43,11 @@ function Player(name, colour_id, warlock) {
 	this.mouseX = 0.5;
 	this.mouseY = 0.5;
 	if (warlock) {
-		this.current_row = GameData.GALILEI_WIZARD_SPAWN[0];
-		this.current_col = GameData.GALILEI_WIZARD_SPAWN[1];
-	} else {
 		this.current_row = GameData.GALILEI_WARLOCK_SPAWN[0];
 		this.current_col = GameData.GALILEI_WARLOCK_SPAWN[1];
+	} else {
+		this.current_row = GameData.GALILEI_WIZARD_SPAWN[0];
+		this.current_col = GameData.GALILEI_WIZARD_SPAWN[1];
 	}
 	this.sigils = new Set();
 

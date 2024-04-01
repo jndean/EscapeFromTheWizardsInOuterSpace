@@ -264,6 +264,7 @@ function noise_transition(data, _) {
 
 function move_transition(args, _) {
 	board.end_cell_selector();
+	game.moved_this_turn = true;
 	actionBox.update('choose_action');
 	board.move_player_token(args.row, args.col);
 	return 0;
