@@ -5,7 +5,7 @@ game = {
 	players: {},
 	player_order: [],
 	current_player: null,
-	sigils: new Set(),
+	sigils: new Set(), // Should be list
 	moved_this_turn: false,
 	player_col: undefined,
 	player_row: undefined,
@@ -77,6 +77,10 @@ function confirmMoveButtonHandler () {
 actionBtnHandlers['cancel'] = function () {
 	board.end_cell_selector();
 	actionBox.update('choose_action');
+}
+
+actionBtnHandlers['finish'] = function () {
+	socket.emit('finish_actions', {});
 }
 
 
@@ -167,6 +171,7 @@ const transition_functions = {
 	move: move_transition,
 	noise: noise_transition,
 	attack: attack_transition,
+	next_player: next_player_transition,
 }
 
 
@@ -262,15 +267,58 @@ function noise_transition(data, _) {
 }
 
 
-function move_transition(args, _) {
-	board.end_cell_selector();
+function move_transition(data, new_state) {
 	game.moved_this_turn = true;
-	actionBox.update('choose_action');
-	board.move_player_token(args.row, args.col);
-	return 0;
+	let duration = 0;
+
+	// Non moving players, silent movemnt
+	if ((data.moving_player != player_name) && (data.noise_coords === null)) {
+		displayBannerMessage(data.moving_player + " moves silently...", 6000);
+		duration = Math.max(duration, 6000);
+	}
+
+	// Moving player updates player token position
+	if (data.moving_player == player_name) {
+		board.end_cell_selector();
+		actionBox.update('choose_action');
+		board.move_player_token(new_state.player_row, new_state.player_col);
+		duration = Math.max(duration, 2000);
+		if (data.sigil != null) {
+			let msg = 'Found a Sigil of ' + data.sigil;
+			if (new_state.sigils.size > MAX_SIGILS) {
+				msg += '<br> <font size=6>You have too many sigils, and must discard one before continuing. </font>'
+			}
+			displayBannerMessage(msg, 5000);
+			duration = Math.max(duration, 5000);
+		}
+	}
+
+	// Everybody does noise animation
+	if (data.noise_coords != null) {
+		let [r, c] = data.noise_coords;
+		let [x, y] = board.cells[r][c].center_coords;
+		x = scaleByPixelRatio(x) / canvas.width;
+		y = 1.0 - scaleByPixelRatio(y) / canvas.height;
+		createNoiseAnimation(x, y, COLOURS[game.players[data.moving_player].colour_id]);
+		duration = Math.max(duration, 3000);
+	}
+
+	// TODO: Update noise tokens now
+
+	return duration;
 }
 
-function attack_transition(transition_data, _) {
+function attack_transition(data, _) {
 	
 	return 4000;
+}
+
+function next_player_transition(data, _) {
+	if (data.player == player_name) {
+		displayBannerMessage("Your turn...", 4500);
+		return 4500;
+	} else {
+		actionBox.update('notmyturn');
+		return 0;
+	}
 }

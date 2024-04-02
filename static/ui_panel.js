@@ -132,7 +132,7 @@ function ActionBox(game_state) {
     this.game_state = game_state;
 
     // this.available_actions = new Set();
-    this.act_names = ['move', 'attack', 'sigil', 'finish'];
+    this.act_names = ['move', 'attack', 'sigil', 'discard', 'finish'];
     this.btn_names = this.act_names.concat(['confirm', 'cancel']);
     this.btn = {};
     for (let i = 0; i < this.btn_names.length; ++i) {
@@ -153,6 +153,7 @@ function ActionBox(game_state) {
         'attack_confirm', // Say, 'This will end your turn'
         'choose_detection_hex',
         'choose_detection_hex_confirm',
+        'choose_discard',
     ];
 
     this.update = function(new_state_str=null) {
@@ -165,15 +166,21 @@ function ActionBox(game_state) {
                 break;
                 
             case 'choose_action':
+
                 this.textbox.innerHTML = 'Choose an action...';
+                if (this.game_state.sigils.length > 0) {
+                    visible_buttons.add('sigil');
+                }
                 if (!this.game_state.moved_this_turn) {
                     visible_buttons.add('move');
                 } else {
-                    visible_buttons.add('finish');
                     if (this.game_state.is_warlock) {
                         visible_buttons.add('attack');
-                    } else if (this.game_state.sigils.length) {
-                        visible_buttons.add('sigil');
+                    }
+                    if (this.game_state.sigils.length > MAX_SIGILS) {
+                        visible_buttons.add('discard');
+                    } else {
+                        visible_buttons.add('finish');
                     }
                 }
                 break;

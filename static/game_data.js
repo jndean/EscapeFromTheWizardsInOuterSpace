@@ -103,6 +103,7 @@ const SIGIL_DESCRIPTIONS = [
 	'Momentum:<br> Move twice as far this turn.',
 ];
 
+const MAX_SIGILS = 3;
 
 
 // This file is loaded by both nodejs and the browser. Only define exports for nodejs
@@ -117,4 +118,5 @@ if (typeof exports !== 'undefined') {
 	exports.ODD_COL_HEX_NEIGHBOURS = ODD_COL_HEX_NEIGHBOURS;
 	exports.SIGIL_NAMES = SIGIL_NAMES;
 	exports.SIGIL_DESCRIPTIONS = SIGIL_DESCRIPTIONS;
+	exports.MAX_SIGILS = MAX_SIGILS;
 }

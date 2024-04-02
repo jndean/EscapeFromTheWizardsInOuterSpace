@@ -160,18 +160,76 @@ io.on('connection', (socket) => {
 		if (game.phase != 'game') return;
 		if (player_name != game.player_order[game.current_player]) return;
 		if (game.moved_this_turn) return;
-
+		
 		let player = game.players[player_name];
+		if ((player.current_row == args.row) && (player.current_col == args.col)) return;
+		
+		// Move player
 		player.current_row = args.row;
 		player.current_col = args.col;
 		game.moved_this_turn = true;
+
+		// Player moved to a safe space
+		if (GameData.GALILEI_SAFE_BY_COL[args.col].includes(args.row+1)) {
+			broadcast_game_state_transition('move', {
+					moving_player: player_name,
+					noise_coords: null,
+				}, 
+				private_data={player_name: {sigil: null}}
+			);
+			return;
+		} 
 		
-		broadcast_game_state_transition(
-			'move',
-			{row: args.row, col: args.col}, 
-			individual=player_name
+		// Player moved to a dangerous space
+		if (game.dangerous_hex_deck.length == 0) 
+			new_dangerous_hex_deck();
+		let noise_result = game.dangerous_hex_deck.pop();
+
+		if (noise_result == 'silent') {
+			// If silent on a dangerous hex, player can find a sigil
+			if (game.sigil_deck.length == 0) 
+				new_sigil_deck();
+			let sigil = game.sigil_deck.pop();
+			if (sigil !== null) {
+				game.players[player_name].sigils.add(sigil);
+			}
+
+			broadcast_game_state_transition('move', {
+					moving_player: player_name,
+					noise_coords: null,
+				}, 
+				private_data={player_name: {sigil: sigil}}
+			);
+			return;
+		}
+		if (noise_result == 'no_choice') {
+
+		}
+
+		// TMP
+		broadcast_game_state_transition('move', {
+				moving_player: player_name,
+				noise_coords: [7, 11],
+			}, 
+			private_data={player_name: {sigil: null}}
 		);
+
+		
 	});
+
+	socket.on('finish_actions', args => {
+		if (game.phase != 'game') return;
+		if (player_name != game.player_order[game.current_player]) return;
+		if (!game.moved_this_turn) return;
+		if (game.players[player_name].sigils.size > GameData.MAX_SIGILS) return;
+
+		game.current_player = (game.current_player + 1) % game.player_order.length;	
+		game.moved_this_turn = false;
+
+		broadcast_game_state_transition('next_player', {
+			player_name: game.player_order[game.current_player]
+		});
+	})
 });
 
 
@@ -216,6 +274,7 @@ function start_new_game(map_name) {
 	}
 	shuffle(roles);
 	
+	// Create Players
 	for (const [name_, colour_id] of Object.entries(lobby.player_to_colour)) {
 		game.players[name_] = new Player(name_, colour_id, roles.pop());
 		game.player_order.push(name_);
@@ -223,6 +282,10 @@ function start_new_game(map_name) {
 	}
 	shuffle(game.player_order);
 	lobby.sockets = {};
+
+	// Create decks
+	new_dangerous_hex_deck();
+	new_sigil_deck();
 	
 	// Starting the game is a 2-part, 2-message process
 	game.phase = 'starting';
@@ -238,6 +301,33 @@ function start_new_game(map_name) {
 	mousePollHandle = setInterval(broadcast_mouse_positions, 100);
 }
 
+function new_dangerous_hex_deck() {
+	game.dangerous_hex_deck = 
+		new Array(27).fill('no_choice').concat(
+			new Array(27).fill('choice')).concat(
+				new Array(23).fill('silent'));
+	shuffle(game.dangerous_hex_deck);
+}
+
+function new_sigil_deck() {
+	// There are some dud (null) items
+	game.sigil_deck = new Array(5).fill(null).concat([
+		'Aggression',
+		'Aggression',
+		'Transposition',
+		'Silence',
+		'Silence',
+		'Silence',
+		'Detection',
+		'Detection',
+		'Resilience',
+		'Momentum',
+		'Momentum',
+		'Momentum',
+	]);
+	shuffle(game.sigil_deck);
+}
+
 
 // -------------- Utilities -------------- //
 
@@ -245,7 +335,7 @@ function start_new_game(map_name) {
 function broadcast_game_state_transition(
 	transition_name, 
 	data, 
-	individual=null,
+	private_data={},
 ) {
 	// Serialise the game state.
 	// Start with state given to all players
@@ -265,19 +355,22 @@ function broadcast_game_state_transition(
 	// Next customise the state with player-specific (secret) data
 	for (const [name, socket] of Object.entries(game.sockets)) {
 		if (socket == null) continue;
-		if ((individual !== null) && (name != individual)) continue;
 		
 		let player = game.players[name];
-		let state = {...common_state};
-		state.sigils = Array.from(player.sigils);
-		state.is_warlock = player.is_warlock;
-		state.player_row = player.current_row;
-		state.player_col = player.current_col;
+		let player_state = {...common_state};
+		player_state.sigils = Array.from(player.sigils);
+		player_state.is_warlock = player.is_warlock;
+		player_state.player_row = player.current_row;
+		player_state.player_col = player.current_col;
+
+		if (private_data.hasOwnProperty(name)) {
+			data = Object.assign({...private_data[name]}, data);
+		}
 
 		socket.emit('state_transition', {
 			name: transition_name,
 			data: data,
-			new_state: state,
+			new_state: player_state,
 		});
 	}
 }
