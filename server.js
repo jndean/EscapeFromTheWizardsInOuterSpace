@@ -49,7 +49,7 @@ function Player(name, colour_id, warlock) {
 		this.current_row = GameData.GALILEI_WIZARD_SPAWN[0];
 		this.current_col = GameData.GALILEI_WIZARD_SPAWN[1];
 	}
-	this.sigils = new Set();
+	this.sigils = [];
 
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
 }
@@ -191,7 +191,7 @@ io.on('connection', (socket) => {
 				new_sigil_deck();
 			let sigil = game.sigil_deck.pop();
 			if (sigil !== null) {
-				game.players[player_name].sigils.add(sigil);
+				game.players[player_name].sigils.push(sigil);
 			}
 
 			broadcast_game_state_transition('move', {
@@ -221,7 +221,7 @@ io.on('connection', (socket) => {
 		if (game.phase != 'game') return;
 		if (player_name != game.player_order[game.current_player]) return;
 		if (!game.moved_this_turn) return;
-		if (game.players[player_name].sigils.size > GameData.MAX_SIGILS) return;
+		if (game.players[player_name].sigils.length > GameData.MAX_SIGILS) return;
 
 		game.current_player = (game.current_player + 1) % game.player_order.length;	
 		game.moved_this_turn = false;
@@ -347,7 +347,7 @@ function broadcast_game_state_transition(
 	};
 	for (const [name, player] of Object.entries(game.players)) {
 		common_state.players[name] = {
-			num_sigils: player.sigils.size,
+			num_sigils: player.sigils.length,
 			history: player.history,
 		}
 	}
@@ -358,7 +358,7 @@ function broadcast_game_state_transition(
 		
 		let player = game.players[name];
 		let player_state = {...common_state};
-		player_state.sigils = Array.from(player.sigils);
+		player_state.sigils = player.sigils;
 		player_state.is_warlock = player.is_warlock;
 		player_state.player_row = player.current_row;
 		player_state.player_col = player.current_col;

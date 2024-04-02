@@ -5,10 +5,11 @@ game = {
 	players: {},
 	player_order: [],
 	current_player: null,
-	sigils: new Set(), // Should be list
+	sigils: [],
 	moved_this_turn: false,
 	player_col: undefined,
 	player_row: undefined,
+	player_changed_flag: false,
 }
 
 
@@ -55,12 +56,13 @@ var actionBtnHandlers = {};
 
 
 actionBtnHandlers['move'] = function () {
+	board.end_cell_selector(); // Keepme
 	board.begin_cell_selector(moveHexSelectedCallback);
 	actionBox.update('choose_move_hex');
-	actionBtnHandlers['confirm'] = confirmMoveButtonHandler;
 }
 
 function moveHexSelectedCallback() {
+	actionBtnHandlers['confirm'] = confirmMoveButtonHandler;
 	actionBox.update('choose_move_hex_confirm');
 }
 
@@ -81,6 +83,7 @@ actionBtnHandlers['cancel'] = function () {
 
 actionBtnHandlers['finish'] = function () {
 	socket.emit('finish_actions', {});
+	actionBox.update('notmyturn');
 }
 
 
@@ -91,9 +94,9 @@ function setGameState(new_state) {
 	if (new_state === null) {
 		return; // For when transitions are just used to queue animtions, not modify game state.
 	}
-	let player_changed = (game.current_player != new_state.current_player);
+	game.player_changed |= (game.current_player != new_state.current_player);
 	game.current_player = new_state.current_player;
-	game.sigils = new Set(new_state.sigils);
+	game.sigils = new_state.sigils;
 	game.is_warlock = new_state.is_warlock;
 	game.player_col = new_state.player_col;
 	game.player_row = new_state.player_row;
@@ -105,8 +108,10 @@ function setGameState(new_state) {
 		game.players[name].num_sigils = player.num_sigils;
 	}
 
-	if (player_changed) {
+	if (game.player_changed) {
+		game.player_changed = false;
 		if (player_name == game.player_order[game.current_player]) {
+			board.begin_cell_selector(moveHexSelectedCallback);
 			actionBox.update('choose_action');
 		} else {
 			actionBox.update('notmyturn');
@@ -186,6 +191,7 @@ function start_game_init_state_transition(start_args, game_state) {
 	game.current_player = 0;
 	game.player_row = game_state.player_row;
 	game.player_col = game_state.player_col;
+	game.player_changed = true;
 
 	setupMousePointers();
 	actionBox = new ActionBox(game);
@@ -196,6 +202,18 @@ function start_game_init_state_transition(start_args, game_state) {
 }
 
 function start_game_animation_transition(_, _) {
+	let fadeout_delay = 5000;
+	let msg_delay = 4000;
+	let msg1_t = 10000;
+	let msg2_t = 5000;
+	if (debug_mode) {
+		msg_delay = 500;
+		msg1_t = 500;
+		msg2_t = 500;
+		fadeout_delay = 1000;
+	}
+	let duration = Math.max(fadeout_delay, msg_delay + msg1_t + msg2_t);
+
 	lobbyFluidCurrentsAnimation.unregister();
 	lobbyFluidCurrentsAnimation = null;
 	gameStartAnimation(character_selection_options);
@@ -217,20 +235,21 @@ function start_game_animation_transition(_, _) {
 		destroy(lore_field);
 		UI_div.style.display = 'block';
 		UI_div.style.animation = 'fadeIn ease 11s';
-	}, 5000);
+	}, fadeout_delay);
+
 
 	// Starting message banner
 	setTimeout(() => {
 		if (game.is_warlock) {
-			displayBannerMessage("You are a <font color=\"#a00\">Warlock</font>", 10000);
-			displayBannerMessage("Don't let them escape", 5000);
+			displayBannerMessage("You are a <font color=\"#a00\">Warlock</font>", msg1_t);
+			displayBannerMessage("Don't let them escape", msg2_t);
 		} else {
-			displayBannerMessage("You are a <font color=\"#0aa\">Wizard</font>", 10000);
-			displayBannerMessage("Run", 5000);
+			displayBannerMessage("You are a <font color=\"#0aa\">Wizard</font>", msg1_t);
+			displayBannerMessage("Run", msg2_t);
 		}
-	}, 4000);
+	}, msg_delay);
 
-	return 19000;
+	return duration;
 }
 
 function noise_transition(data, _) {
@@ -284,8 +303,9 @@ function move_transition(data, new_state) {
 		board.move_player_token(new_state.player_row, new_state.player_col);
 		duration = Math.max(duration, 2000);
 		if (data.sigil != null) {
+			sigilBox.addSigil(data.sigil);
 			let msg = 'Found a Sigil of ' + data.sigil;
-			if (new_state.sigils.size > MAX_SIGILS) {
+			if (new_state.sigils.length > MAX_SIGILS) {
 				msg += '<br> <font size=6>You have too many sigils, and must discard one before continuing. </font>'
 			}
 			displayBannerMessage(msg, 5000);
@@ -314,7 +334,8 @@ function attack_transition(data, _) {
 }
 
 function next_player_transition(data, _) {
-	if (data.player == player_name) {
+	game.player_changed = true;
+	if (data.player_name == player_name) {
 		displayBannerMessage("Your turn...", 4500);
 		return 4500;
 	} else {
