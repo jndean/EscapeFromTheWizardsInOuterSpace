@@ -12,7 +12,7 @@ document.addEventListener(
 
 
 
-function create_ui_components(game_state) {
+function create_ui_components(game_obj) {
 
     // TMP
     // game.player_order = ['Josef', 'Katharine', 'Lloyd', 'Sean', 'Rebecca', 'Lucy'];
@@ -28,9 +28,9 @@ function create_ui_components(game_state) {
 
     // Player list
     let player_box = document.getElementById('player_list');
-    for (let i = 0; i < game_state.player_order.length; ++i) {
-        let player_name = game_state.player_order[i];
-        let player = game_state.players[player_name];
+    for (let i = 0; i < game_obj.player_order.length; ++i) {
+        let player_name = game_obj.player_order[i];
+        let player = game_obj.players[player_name];
         let item = document.createElement('div');
         item.className = "textfield player-list-item";
         player_box.appendChild(item);
@@ -47,40 +47,16 @@ function create_ui_components(game_state) {
         item.appendChild(name_box)
     }
 
-    
-    // Sigils
+    actionBox = new ActionBox(game_obj);
     sigilBox = new SigilBox();
-    // let sigil_box = document.getElementById('sigil_box');
-    // let sigil_desc_field = document.getElementById('sigils_text');
-    
-    // for (let i = 0; i < SIGIL_NAMES.length; ++i) {
-    //     let name = SIGIL_NAMES[i];
-    //     let desc = SIGIL_DESCRIPTIONS[i];
-    //     let symbol = name[0];
-    //     let btn = document.createElement('img');
-    //     btn.className = 'sigil button';
-    //     btn.draggable = false;
-    //     btn.src = "static/symbols/Sigil_" + symbol + ".png";
-    //     btn.sigil_desc = desc;
-    //     btn.sigil_name = name;
-    //     btn.style.display = 'none';
-    //     sigil_buttons[name] = btn;
-    //     sigil_box.prepend(btn);
-        
-    //     btn.onmouseover = function(e) {
-    //         sigil_desc_field.innerHTML = desc;
-    //     };
-    //     btn.onmouseleave = function(e) {
-    //         sigil_desc_field.textContent = '';
-    //     };
-    // }
 
     board.create_player_token(
-        game_state.players[player_name].colour_id,
-        game_state.player_row,
-        game_state.player_col,
+        game_obj.players[player_name].colour_id,
+        game_obj.player_row,
+        game_obj.player_col,
     );
 
+	updateUI(game_obj);
 }
 
 function SigilBox() {

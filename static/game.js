@@ -166,7 +166,7 @@ function runTransitions() {
 		return;
 	
 	/// Algorithm for catching up: skip some
-	const transition_cap = 2;
+	const transition_cap = 3;
 	let skipped_transition = null;
 	while ((state_transistions.length > transition_cap) &&
 			(!state_transistions[0].unskippable)) {
@@ -192,11 +192,13 @@ function runTransitions() {
 const unskippable_transitions = new Set([
 	'start_game_init_state',
 	'start_game_animation',
-])
+	'player_rejoined',
+]);
 
 const transition_functions = {
 	start_game_init_state: start_game_init_state_transition,
 	start_game_animation: start_game_animation_transition,
+	player_rejoined: player_rejoined_transition,
 	move: move_transition,
 	noise: noise_transition,
 	attack: attack_transition,
@@ -212,15 +214,13 @@ function start_game_init_state_transition(start_args, game_state) {
 			start_args.player_to_colour[name_],
 		);
 	});
-	game.current_player = 0;
+	game.current_player = game_state.current_player;
 	game.player_row = game_state.player_row;
 	game.player_col = game_state.player_col;
 	game.player_changed = true;
 
 	setupMousePointers();
-	actionBox = new ActionBox(game);
 	create_ui_components(game);
-	updateUI(game);
 
 	return 0; // No delay
 }
@@ -274,6 +274,26 @@ function start_game_animation_transition(_, _) {
 	}, msg_delay);
 
 	return duration;
+}
+
+function player_rejoined_transition(args, new_state) {
+	if (player_name != args.player_name) return 0;
+	start_game_init_state_transition(args, new_state);
+
+	destroy(join_div);
+	destroy(lore_field);
+	map_image.src = 'static/maps/galilei_map_tests.png';
+	map_image.style.animation = 'rectifiedFadeIn ease 1s';
+	wallsTexture = galileiWallsTexture;
+	show(map_image);
+	UI_div.style.display = 'block';
+	UI_div.style.animation = 'fadeIn ease 1s';
+
+	mousePointer.color = COLOURS[args.player_to_colour[args.player_name]];
+	mousePointer.down = true;
+	update_fluid_sim();
+
+	return 1000;
 }
 
 function noise_transition(data, _) {
@@ -352,24 +372,25 @@ function move_transition(data, new_state) {
 		duration = Math.max(duration, 3000 + move_delay);
 	}
 
-	// Everybody animated noise tokens updating now
-	let marked_cells = new Set();
-	let player = game.players[data.moving_player];
-	for (let i = HISTORY_LENGTH - 1; i >= 0 ; --i) {
-		let event = new_state.players[data.moving_player].history[i];
-		if (event === null) 
-			continue;
-		let [event_type, cell_row, cell_col] = event;
-		let cell = board.cells[cell_row][cell_col];
-		cell.transition_noise_token(player.colour_id, i, 'blank');
-		marked_cells.add(1000 * cell_row + cell_col); // 2D coord "hash"
-	}
-	let disused = player.currently_marked_cells.difference(marked_cells);
-	disused.forEach((k) => {
-		let cell = board.cells[Math.floor(k / 1000)][k % 1000];
-		cell.transition_noise_token(player.colour_id, null);
-	});
-	player.currently_marked_cells = marked_cells;
+	// Everybody animates noise tokens updating now
+	setTimeout(() => {
+		let marked_cells = new Set();
+		let player = game.players[data.moving_player];
+		for (let i = HISTORY_LENGTH - 1; i >= 0 ; --i) {
+			let event = new_state.players[data.moving_player].history[i];
+			if (event === null) continue;
+			let [event_type, cell_row, cell_col] = event;
+			let cell = board.cells[cell_row][cell_col];
+			cell.transition_noise_token(player.colour_id, i, 'blank');
+			marked_cells.add(1000 * cell_row + cell_col); // 2D coord "hash"
+		}
+		let disused = player.currently_marked_cells.difference(marked_cells);
+		disused.forEach((k) => {
+			let cell = board.cells[Math.floor(k / 1000)][k % 1000];
+			cell.transition_noise_token(player.colour_id, null);
+		});
+		player.currently_marked_cells = marked_cells;
+	}, move_delay);
 
 	return duration;
 }

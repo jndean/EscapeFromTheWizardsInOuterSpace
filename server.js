@@ -94,7 +94,7 @@ io.on('connection', (socket) => {
 				socket.emit('join_lobby', player_name);
 				broadcast_lobby_state();
 			}
-		} else {
+		} else if (game.phase == 'game') {
 			if (!(new_name in game.sockets)) {
 			    socket.emit('join_fail', 'Nobody by that name is part of the game');
 			    return;
@@ -106,7 +106,12 @@ io.on('connection', (socket) => {
 			player_name = new_name;
 			game.sockets[player_name] = socket;
 			console.log(player_name + ' rejoined the game');
-			socket.emit('rejoin_success', player_name);
+			broadcast_game_state_transition('player_rejoined', {
+				player_name: player_name,
+				player_order: game.player_order,
+				player_to_colour: lobby.player_to_colour,
+			}); 
+			// socket.emit('rejoin_success', player_name);
 		}
 	});
 
@@ -302,12 +307,12 @@ function start_new_game(map_name) {
 	
 	// Starting the game is a 2-part, 2-message process
 	game.phase = 'starting';
+	game.current_player = 0;
 	broadcast_game_state_transition('start_game_init_state', {
 		map_name: map_name,
 		player_order: game.player_order,
 		player_to_colour: lobby.player_to_colour,
 	});
-	game.current_player = 0;
 	game.phase = 'game';
 	broadcast_game_state_transition('start_game_animation', {});
 

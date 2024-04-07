@@ -1,6 +1,6 @@
 
 var character_selection_options = [];
-var lobbyFluidCurrentsAnimation = createLobbyCurrentsAnimation();
+var lobbyFluidCurrentsAnimation = null;
 var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-!?:.,$";
 
 
@@ -40,6 +40,7 @@ join_button.onclick = function() {
 		return;
 	}
 	join_msg_div.innerHTML = "Connecting...";
+	player_name = name;
 	socket.emit("join", name);
 }
 
@@ -59,7 +60,6 @@ socket.on('join_lobby', (name) => {
 		});
 	}
 	
-	player_name = name;
 	destroy(join_div);
 	game.phase = 'lobby';
 	document.getElementById("board_container").style.cursor = 'none';
@@ -69,6 +69,7 @@ socket.on('join_lobby', (name) => {
 	}
 	
 	update_fluid_sim();
+	lobbyFluidCurrentsAnimation = createLobbyCurrentsAnimation();
 	lobbyFluidCurrentsAnimation.register();
 	mousePointer.down = true;
 	mousePointer.color = colourFromHSV(0, 0, 0.2);
