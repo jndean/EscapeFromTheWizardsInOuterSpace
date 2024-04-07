@@ -3,6 +3,13 @@ var player_icons = {};
 var actionBox = undefined;
 var sigilBox = undefined;
 
+// Make right clicks do nothing
+document.addEventListener(
+    'contextmenu',
+    e => {e.preventDefault();},
+    false
+);
+
 
 
 function create_ui_components(game_state) {
@@ -108,8 +115,11 @@ function SigilBox() {
         };
     }
     
-    this.removeSigil = function(idx) {
-
+    this.removeSigil = function(i) {
+        let btn = this.buttons[i];
+        this.buttons.splice(i, 1);
+        btn.style.animation = 'shrink-fade 0.8s ease-in-out';
+        setTimeout(() => {destroy(btn);}, 800);
     }
 
     this.assertSigilList = function(sigils) {
@@ -118,6 +128,13 @@ function SigilBox() {
             equal &= sigils[i] == this.buttons[i].sigil_name;
         }
         if (equal) return;
+
+        // Sigil list is different, so change it.
+        while(this.buttons.length) {
+            this.buttons[0].style.display = 'none';
+            this.removeSigil(0);
+        }
+        sigils.forEach(x => {this.addSigil(x);});
     }
 
 

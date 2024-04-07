@@ -231,6 +231,8 @@ function Board() {
 		overlay.addEventListener('mousemove', this.cell_select_mousemove_handle);
 
 		this.cell_select_mousedown_handle = (e) => {
+			if (e.button !== 0) return;
+	
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
 			if (cell === null || cell.is_wall) return;
 

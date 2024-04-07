@@ -175,7 +175,10 @@ io.on('connection', (socket) => {
 					moving_player: player_name,
 					noise_coords: null,
 				}, 
-				private_data={player_name: {sigil: null}}
+				private_data={[player_name]: {
+					sigil: null,
+					noise_result: 'safe_space',
+				}}
 			);
 			return;
 		} 
@@ -191,28 +194,46 @@ io.on('connection', (socket) => {
 				new_sigil_deck();
 			let sigil = game.sigil_deck.pop();
 			if (sigil !== null) {
-				game.players[player_name].sigils.push(sigil);
+				player.sigils.push(sigil);
+				console.log('sending', player_name, sigil);
 			}
 
 			broadcast_game_state_transition('move', {
 					moving_player: player_name,
 					noise_coords: null,
 				}, 
-				private_data={player_name: {sigil: sigil}}
+				private_data={[player_name]: {
+					sigil: sigil,
+					noise_result: noise_result,
+				}}
 			);
 			return;
 		}
-		if (noise_result == 'no_choice') {
 
+		if (noise_result == 'no_choice') {
+			broadcast_game_state_transition('move', {
+					moving_player: player_name,
+					noise_coords: [player.current_row, player.current_col],
+				}, 
+				private_data={[player_name]: {
+					sigil: null,
+					noise_result: noise_result,
+				}}
+			);
 		}
 
-		// TMP
-		broadcast_game_state_transition('move', {
-				moving_player: player_name,
-				noise_coords: [7, 11],
-			}, 
-			private_data={player_name: {sigil: null}}
-		);
+		if (noise_result == 'choice') {
+			// TMP
+			broadcast_game_state_transition('move', {
+					moving_player: player_name,
+					noise_coords: [7, 11],
+				}, 
+				private_data={[player_name]: {
+					sigil: null,
+					noise_result: noise_result,
+				}}
+			);
+		}
 
 		
 	});

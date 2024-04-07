@@ -301,16 +301,19 @@ function move_transition(data, new_state) {
 		board.end_cell_selector();
 		actionBox.update('choose_action');
 		board.move_player_token(new_state.player_row, new_state.player_col);
-		duration = Math.max(duration, 2000);
+		var move_delay = 2000;
+		duration = Math.max(duration, move_delay);
 		if (data.sigil != null) {
 			sigilBox.addSigil(data.sigil);
 			let msg = 'Found a Sigil of ' + data.sigil;
 			if (new_state.sigils.length > MAX_SIGILS) {
 				msg += '<br> <font size=6>You have too many sigils, and must discard one before continuing. </font>'
 			}
-			displayBannerMessage(msg, 5000);
-			duration = Math.max(duration, 5000);
+			displayBannerMessage(msg, 5500);
+			duration = Math.max(duration, 5500);
 		}
+	} else {
+		var move_delay = 0;
 	}
 
 	// Everybody does noise animation
@@ -319,8 +322,10 @@ function move_transition(data, new_state) {
 		let [x, y] = board.cells[r][c].center_coords;
 		x = scaleByPixelRatio(x) / canvas.width;
 		y = 1.0 - scaleByPixelRatio(y) / canvas.height;
-		createNoiseAnimation(x, y, COLOURS[game.players[data.moving_player].colour_id]);
-		duration = Math.max(duration, 3000);
+		setTimeout(() => {
+			createNoiseAnimation(x, y, COLOURS[game.players[data.moving_player].colour_id]);
+		}, move_delay);
+		duration = Math.max(duration, 3000 + move_delay);
 	}
 
 	// TODO: Update noise tokens now
