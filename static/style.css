@@ -150,8 +150,8 @@ html, body {
 
 .noise-token {
   position: absolute;
-  height: 17px;
-  width: 17px;
+  height: 16px;
+  width: 16px;
 
   transition-duration: 1s;
   transition-property: opacity;
@@ -159,8 +159,8 @@ html, body {
 
 .player-token {
   position: absolute;
-  height: 30px;
-  width: 30px;
+  height: 28px;
+  width: 28px;
   animation: fadein 3s ease-in-out;
 
   transition-property: top, left;

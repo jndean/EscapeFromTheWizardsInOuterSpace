@@ -16,8 +16,8 @@ const HEX_RECT_HEIGHT = 2 * HEX_RAD;
 const HEX_Y_START = 13;
 const HEX_X_START = 18;
 
-const NOISE_TOKEN_SIZE = 17;  // pixels
-const PLAYER_TOKEN_SIZE = 30;  // pixels
+const NOISE_TOKEN_SIZE = 16;  // pixels
+const PLAYER_TOKEN_SIZE = 28;  // pixels
 
 
 function GridCell(row, column) {
@@ -76,7 +76,7 @@ function GridCell(row, column) {
 
 	this.colour_to_position = function(colour_id) {
 		if (!(colour_id in this.noise_token_positions)) {
-			const r = 0.6;
+			const r = 0.65;
 			let angle = 2 * HEX_ANGLE * this.unused_positions.pop();
 			let x = this.x + (HEX_RECT_WIDTH - NOISE_TOKEN_SIZE) / 2;
 			let y = this.y + (HEX_RECT_HEIGHT - NOISE_TOKEN_SIZE) / 2;
@@ -125,7 +125,7 @@ function GridCell(row, column) {
 			symbol.id += 'beingdeletedleavemealone';
 			setTimeout(() => {map_counters_layer.removeChild(symbol);}, 1000);
 		} else {	
-			let min_opacity = 0.1;
+			let min_opacity = 0.3;
 			let opacity = min_opacity + (HISTORY_LENGTH - value) * ((1 - min_opacity) / HISTORY_LENGTH);
 			setTimeout(() => {
 				token.style.opacity = opacity;

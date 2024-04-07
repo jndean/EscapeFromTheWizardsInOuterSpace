@@ -54,6 +54,7 @@ function setupMousePointers() {
 
 var actionBtnHandlers = {};
 
+// ----- Move ----- //
 
 actionBtnHandlers['move'] = function () {
 	board.end_cell_selector(); // Keepme
@@ -66,7 +67,6 @@ function moveHexSelectedCallback() {
 	actionBox.update('choose_move_hex_confirm');
 }
 
-// Specific handler for different confirm buttons.
 function confirmMoveButtonHandler () {
 	socket.emit('request_move', {
 		row: board.current_selection.row,
@@ -80,6 +80,30 @@ actionBtnHandlers['cancel'] = function () {
 	board.end_cell_selector();
 	actionBox.update('choose_action');
 }
+
+// ----- Attack ----- //
+
+actionBtnHandlers['attack'] = function () {
+	board.end_cell_selector(); // Keepme
+	board.begin_cell_selector(attackHexSelectedCallback);
+	actionBox.update('choose_attack_hex');
+}
+
+function attackHexSelectedCallback() {
+	actionBtnHandlers['confirm'] = confirmAttackButtonHandler;
+	actionBox.update('choose_attack_hex_confirm');
+}
+
+function confirmAttackButtonHandler () {
+	socket.emit('request_attack', {
+		row: board.current_selection.row,
+		col: board.current_selection.col,
+	});
+	board.end_cell_selector();
+	actionBox.update('choose_attack_hex');
+}
+
+// ----- Finish ----- //
 
 actionBtnHandlers['finish'] = function () {
 	socket.emit('finish_actions', {});
@@ -328,7 +352,24 @@ function move_transition(data, new_state) {
 		duration = Math.max(duration, 3000 + move_delay);
 	}
 
-	// TODO: Update noise tokens now
+	// Everybody animated noise tokens updating now
+	let marked_cells = new Set();
+	let player = game.players[data.moving_player];
+	for (let i = HISTORY_LENGTH - 1; i >= 0 ; --i) {
+		let event = new_state.players[data.moving_player].history[i];
+		if (event === null) 
+			continue;
+		let [event_type, cell_row, cell_col] = event;
+		let cell = board.cells[cell_row][cell_col];
+		cell.transition_noise_token(player.colour_id, i, 'blank');
+		marked_cells.add(1000 * cell_row + cell_col); // 2D coord "hash"
+	}
+	let disused = player.currently_marked_cells.difference(marked_cells);
+	disused.forEach((k) => {
+		let cell = board.cells[Math.floor(k / 1000)][k % 1000];
+		cell.transition_noise_token(player.colour_id, null);
+	});
+	player.currently_marked_cells = marked_cells;
 
 	return duration;
 }
@@ -342,7 +383,7 @@ function next_player_transition(data, _) {
 	game.player_changed = true;
 	if (data.player_name == player_name) {
 		displayBannerMessage("Your turn...", 4500);
-		return 4500;
+		return 3000;
 	} else {
 		actionBox.update('notmyturn');
 		return 0;

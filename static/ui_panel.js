@@ -203,7 +203,7 @@ function ActionBox(game_state) {
     for (let i = 0; i < this.btn_names.length; ++i) {
         let name = this.btn_names[i];
         this.btn[name] = document.getElementById('act_btn_' + name);
-        this.btn[name].onclick = (ev) => {actionBtnHandlers[name](ev)};
+        this.btn[name].onclick = ev => {actionBtnHandlers[name](ev)};
     }
 
     this.textbox = document.getElementById("action_text");
@@ -213,9 +213,10 @@ function ActionBox(game_state) {
         'choose_action',
         'choose_move_hex',
         'choose_move_hex_confirm',
+        'choose_attack_hex',
+        'choose_attack_hex_confirm',
         'choose_sigil',
         'choose_sigil_confirm',
-        'attack_confirm', // Say, 'This will end your turn'
         'choose_detection_hex',
         'choose_detection_hex_confirm',
         'choose_discard',
@@ -237,10 +238,10 @@ function ActionBox(game_state) {
                 }
                 if (!this.game_state.moved_this_turn) {
                     visible_buttons.add('move');
-                } else {
                     if (this.game_state.is_warlock) {
                         visible_buttons.add('attack');
                     }
+                } else {
                     if (this.game_state.sigils.length > MAX_SIGILS) {
                         visible_buttons.add('discard');
                     } else {
@@ -249,13 +250,17 @@ function ActionBox(game_state) {
                 }
                 break;
 
-            case 'choose_move_hex':            
-                this.textbox.innerHTML = 'Choose a hex';
+            case 'choose_attack_hex':
+            case 'choose_move_hex':
+                this.textbox.innerHTML = (this.state == 'choose_move_hex') ?
+                    'Choose where to go' : 'Choose a hex to attack';
                 visible_buttons.add('cancel');
                 break;
 
-            case 'choose_move_hex_confirm':            
-                this.textbox.innerHTML = 'Choose a hex';
+            case 'choose_attack_hex_confirm':
+            case 'choose_move_hex_confirm':
+                this.textbox.innerHTML = (this.state == 'choose_move_hex_confirm') ?
+                    'Confirm move' : 'Confirm attack';
                 visible_buttons.add('confirm');
                 visible_buttons.add('cancel');
                 break;

@@ -52,6 +52,11 @@ function Player(name, colour_id, warlock) {
 	this.sigils = [];
 
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
+
+	this.update_history = function(update) { 
+		this.history.pop();
+		this.history.unshift(update);
+	}
 }
 
 
@@ -139,23 +144,6 @@ io.on('connection', (socket) => {
 		player.mouseY = args.mouseY;
 	});
 
-	socket.on('tmp_mouseclick', (args) => {
-		if (game.phase == 'lobby') return;
-		let [cell_row, cell_col] = args;
-
-		let player = game.players[player_name];
-		player.history.pop();
-		player.history.unshift(['noise', cell_row, cell_col]);
-		// OR // player.history.unshift(null);
-
-		broadcast_game_state_transition('noise', {
-			cell_row: cell_row,
-			cell_col: cell_col,
-			player_name: player.name,
-			history: player.history,
-		});
-	});
-
 	socket.on('request_move', (args) => {
 		if (game.phase != 'game') return;
 		if (player_name != game.player_order[game.current_player]) return;
@@ -169,61 +157,48 @@ io.on('connection', (socket) => {
 		player.current_col = args.col;
 		game.moved_this_turn = true;
 
-		// Player moved to a safe space
+		// Figure out what happens
+		let noise_coords = null;
+		let sigil = null;
+		let noise_result = undefined;
 		if (GameData.GALILEI_SAFE_BY_COL[args.col].includes(args.row+1)) {
-			broadcast_game_state_transition('move', {
-					moving_player: player_name,
-					noise_coords: null,
-				}, 
-				private_data={[player_name]: {
-					sigil: null,
-					noise_result: 'safe_space',
-				}}
-			);
-			return;
-		} 
-		
-		// Player moved to a dangerous space
-		if (game.dangerous_hex_deck.length == 0) 
-			new_dangerous_hex_deck();
-		let noise_result = game.dangerous_hex_deck.pop();
-
+			noise_result = 'safe_space';
+			player.update_history(null);
+		} else {
+			if (game.dangerous_hex_deck.length == 0) new_dangerous_hex_deck();
+			noise_result = game.dangerous_hex_deck.pop();
+		}
+		console.log(player_name, 'get result', noise_result);
 		if (noise_result == 'silent') {
+			player.update_history(null);
 			// If silent on a dangerous hex, player can find a sigil
 			if (game.sigil_deck.length == 0) 
 				new_sigil_deck();
-			let sigil = game.sigil_deck.pop();
+			sigil = game.sigil_deck.pop();
 			if (sigil !== null) {
 				player.sigils.push(sigil);
-				console.log('sending', player_name, sigil);
 			}
+		} else if (noise_result == 'no_choice') {
+			noise_coords = [player.current_row, player.current_col];
+			player.update_history(['noise', player.current_row, player.current_col]);
+		}
 
+		// Communicate the result
+		if (noise_result != 'choice') {
 			broadcast_game_state_transition('move', {
 					moving_player: player_name,
-					noise_coords: null,
+					noise_coords: noise_coords,
 				}, 
 				private_data={[player_name]: {
 					sigil: sigil,
 					noise_result: noise_result,
 				}}
 			);
-			return;
-		}
-
-		if (noise_result == 'no_choice') {
-			broadcast_game_state_transition('move', {
-					moving_player: player_name,
-					noise_coords: [player.current_row, player.current_col],
-				}, 
-				private_data={[player_name]: {
-					sigil: null,
-					noise_result: noise_result,
-				}}
-			);
-		}
-
-		if (noise_result == 'choice') {
-			// TMP
+		} else {
+			// Need to ask player where they want to make a noise
+			//TODO: emit 'choose_noise', which should include the current_pos so player can move token during the transition
+			//TMP:
+			player.update_history(['noise', 7, 11]);
 			broadcast_game_state_transition('move', {
 					moving_player: player_name,
 					noise_coords: [7, 11],
@@ -234,9 +209,26 @@ io.on('connection', (socket) => {
 				}}
 			);
 		}
-
-		
+	
 	});
+
+	
+	socket.on('request_attack', (args) => {
+		if (game.phase != 'game') return;
+		if (player_name != game.player_order[game.current_player]) return;
+		if (game.moved_this_turn) return;
+		
+		let player = game.players[player_name];
+		if ((player.current_row == args.row) && (player.current_col == args.col)) return;
+
+		// Move player
+		player.current_row = args.row;
+		player.current_col = args.col;
+		game.moved_this_turn = true;
+
+		// TODO: attack the space
+	});
+
 
 	socket.on('finish_actions', args => {
 		if (game.phase != 'game') return;
@@ -250,7 +242,7 @@ io.on('connection', (socket) => {
 		broadcast_game_state_transition('next_player', {
 			player_name: game.player_order[game.current_player]
 		});
-	})
+	});
 });
 
 
