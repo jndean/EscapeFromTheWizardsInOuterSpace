@@ -9,7 +9,6 @@ game = {
 	moved_this_turn: false,
 	player_col: undefined,
 	player_row: undefined,
-	player_changed_flag: false,
 }
 
 
@@ -135,7 +134,9 @@ function setGameState(new_state) {
 	if (game.player_changed) {
 		game.player_changed = false;
 		if (player_name == game.player_order[game.current_player]) {
-			board.begin_cell_selector(moveHexSelectedCallback);
+			if (!game.moved_this_turn) {
+				board.begin_cell_selector(moveHexSelectedCallback);
+			}
 			actionBox.update('choose_action');
 		} else {
 			actionBox.update('notmyturn');
@@ -361,36 +362,21 @@ function move_transition(data, new_state) {
 	}
 
 	// Everybody does noise animation
+	let moving_player = game.players[data.moving_player];
 	if (data.noise_coords != null) {
 		let [r, c] = data.noise_coords;
 		let [x, y] = board.cells[r][c].center_coords;
 		x = scaleByPixelRatio(x) / canvas.width;
 		y = 1.0 - scaleByPixelRatio(y) / canvas.height;
 		setTimeout(() => {
-			createNoiseAnimation(x, y, COLOURS[game.players[data.moving_player].colour_id]);
+			createNoiseAnimation(x, y, COLOURS[moving_player.colour_id]);
 		}, move_delay);
 		duration = Math.max(duration, 3000 + move_delay);
 	}
 
-	// Everybody animates noise tokens updating now
-	setTimeout(() => {
-		let marked_cells = new Set();
-		let player = game.players[data.moving_player];
-		for (let i = HISTORY_LENGTH - 1; i >= 0 ; --i) {
-			let event = new_state.players[data.moving_player].history[i];
-			if (event === null) continue;
-			let [event_type, cell_row, cell_col] = event;
-			let cell = board.cells[cell_row][cell_col];
-			cell.transition_noise_token(player.colour_id, i, 'blank');
-			marked_cells.add(1000 * cell_row + cell_col); // 2D coord "hash"
-		}
-		let disused = player.currently_marked_cells.difference(marked_cells);
-		disused.forEach((k) => {
-			let cell = board.cells[Math.floor(k / 1000)][k % 1000];
-			cell.transition_noise_token(player.colour_id, null);
-		});
-		player.currently_marked_cells = marked_cells;
-	}, move_delay);
+	// Everybody animates noise tokens updating now (or after the player token moves)
+	moving_player.history = new_state.players[moving_player.name].history;
+	setTimeout(() => {board.display_player_history(moving_player);}, move_delay);
 
 	return duration;
 }

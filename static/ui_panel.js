@@ -77,11 +77,10 @@ function SigilBox() {
         btn.src = "static/symbols/Sigil_" + symbol + ".png";
         btn.sigil_desc = desc;
         btn.sigil_name = sigil_name;
-        btn.style.animation = 'grow-appear 0.8s ease-in-out';
+        btn.style.animation = 'grow-appear 2s ease-out';
         this.buttons.push(btn);
         this.sigil_box_div.prepend(btn);
-        this.no_sigil_msg_field.textContent = '';
-        this.no_sigil_msg_field.style.opacity = 1;
+        this.showOrHideNoSigilMessage();
         
         btn.onmouseover = e => {
             this.desc_field.innerHTML = desc;
@@ -94,8 +93,11 @@ function SigilBox() {
     this.removeSigil = function(i) {
         let btn = this.buttons[i];
         this.buttons.splice(i, 1);
-        btn.style.animation = 'shrink-fade 0.8s ease-in-out';
-        setTimeout(() => {destroy(btn);}, 800);
+        btn.style.animation = 'shrink-fade 1s ease-in-out';
+        setTimeout(() => {
+            destroy(btn);
+            this.showOrHideNoSigilMessage();
+        }, 900);
     }
 
     this.assertSigilList = function(sigils) {
@@ -113,6 +115,15 @@ function SigilBox() {
         sigils.forEach(x => {this.addSigil(x);});
     }
 
+    this.showOrHideNoSigilMessage = function() {
+        if (this.buttons.length == 0) {
+            this.no_sigil_msg_field.style.transition = 'opacity 1s';
+            this.no_sigil_msg_field.style.opacity = 1;
+        } else {
+            this.no_sigil_msg_field.style.transition = 'opacity 0s';
+            this.no_sigil_msg_field.style.opacity = 0;
+        }
+    }
 
     this.begin_selection = function() {
 
@@ -134,32 +145,11 @@ function updateUI(game_state) {
 
     // Sigils
     sigilBox.assertSigilList(game_state.sigils);
-    // SIGIL_NAMES.forEach((name) => {
-    //     let btn = sigil_buttons[name];
-    //     if (game_state.sigils.has(name)) {
-    //         if (btn.style.display == 'none') {
-    //             btn.style.display = '';
-    //             btn.style.animation = 'grow-appear 0.8s ease-in-out';
-    //         }
-    //     } else if (btn.style.display == '') {
-    //         btn.style.animation = 'shrink-fade 0.8s ease-in-out';
-    //         setTimeout(() => {
-    //             btn.style.display = 'none';
-    //         }, 800);
-    //     }
-    // });
-    // let no_sigil_msg_field = document.getElementById('no_sigils_msg');
-    // if (game_state.sigils.size) {
-    //     no_sigil_msg_field.textContent = '';
-    //     no_sigil_msg_field.style.opacity = 0;
-    // } else {
-    //     setTimeout(() => {
-    //         no_sigil_msg_field.style.transitionProperty = 'opacity';
-    //         no_sigil_msg_field.style.transitionDuration = '1s';
-    //         no_sigil_msg_field.style.opacity = 1;
-    //         no_sigil_msg_field.innerHTML = 'You have no Sigils. <br>Search dangerous spaces <br> to find more...';
-    //     }, 800);
-    // }
+
+    // History tokens
+    for (const [name_, player] of Object.entries(game_state.players)) {
+        board.display_player_history(player);
+    }
 
     // Player Token
     board.move_player_token(game_state.player_row, game_state.player_col);

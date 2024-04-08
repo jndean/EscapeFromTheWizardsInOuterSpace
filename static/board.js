@@ -146,6 +146,7 @@ function Board() {
 	this.cells = [];
 	this.current_selection = null;
 	this.current_mouseover = null;
+	this.current_historys = {};
 
 	for (var y= 0 ; y < this.num_rows; ++y) {
 		let row = [];
@@ -168,6 +169,28 @@ function Board() {
 		let [x, y] = this.cells[row][col].center_coords;
 		this.player_token.style.left = (x - PLAYER_TOKEN_SIZE / 2) + 'px';
     	this.player_token.style.top = (y - PLAYER_TOKEN_SIZE / 2) + 'px';
+	}
+
+	this.display_player_history = function(player) {
+		let new_history_repr = String(player.history);
+		if (this.current_historys[player.name] === new_history_repr) return;
+		this.current_historys[player.name] = new_history_repr;
+
+		let marked_cells = new Set();
+		for (let i = HISTORY_LENGTH - 1; i >= 0 ; --i) {
+			let event = player.history[i];
+			if (event === null) continue;
+			let [event_type, cell_row, cell_col] = event;
+			let cell = this.cells[cell_row][cell_col];
+			cell.transition_noise_token(player.colour_id, i, 'blank');
+			marked_cells.add(1000 * cell_row + cell_col); // 2D coord "hash"
+		}
+		let disused = player.currently_marked_cells.difference(marked_cells);
+		disused.forEach((k) => {
+			let cell = this.cells[Math.floor(k / 1000)][k % 1000];
+			cell.transition_noise_token(player.colour_id, null);
+		});
+		player.currently_marked_cells = marked_cells;
 	}
 
 	// Given global mouse coords, returns the corresponding board cell, or null.
