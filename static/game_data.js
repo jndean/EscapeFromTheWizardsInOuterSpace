@@ -95,13 +95,22 @@ const SIGIL_NAMES = [
 ];
 
 const SIGIL_DESCRIPTIONS = [
-	'Aggression:<br> You may perform an Attack move like a Warlock this turn.',
+	'Aggression:<br> You may Attack Move like a Warlock this turn.',
 	'Transposition:<br> Teleport to your starting hex.',
-	'Silence:<br> You won\'t disturb the aether this turn.',
+	'Silence:<br> You will not disturb the aether this turn.',
 	'Detection:<br> Reveal players on or adjacent to a chosen hex.',
 	'Resilience: (Passive) <br> You will automatically survive 1 attack.',
 	'Momentum:<br> Move twice as far this turn.',
 ];
+
+const SIGIL_COLOURS = {
+	Aggression: '#b00',
+	Transposition: '#60d',
+	Silence: '#09b',
+	Detection: '#fb0',
+	Resilience: '#290',
+	Momentum: '#06f',
+};
 
 const MAX_SIGILS = 3;
 
@@ -119,4 +128,5 @@ if (typeof exports !== 'undefined') {
 	exports.SIGIL_NAMES = SIGIL_NAMES;
 	exports.SIGIL_DESCRIPTIONS = SIGIL_DESCRIPTIONS;
 	exports.MAX_SIGILS = MAX_SIGILS;
+	exports.SIGIL_COLOURS = SIGIL_COLOURS;
 }

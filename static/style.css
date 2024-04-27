@@ -36,18 +36,37 @@ html, body {
 .sigil {
   transition-property: opacity, transform;
   transition-duration: 0.3s, 0.3s;
-  /* animation: hue-rock infinite 3s ease-in-out; */
 }
 .sigil:hover {
   transform: scale(1.06);
   opacity: 1;
-  /* animation: hue-rock infinite 0.07s ease-in-out; */
+}
+.sigil:active:hover {
+  opacity: 1;
+  transform: scale(1);
+}
+
+
+/* .sigil {
+  transition: filter 500ms;
+}
+.sigil:hover {
+  opacity: 1.0;
+  filter: blur(1px);
+  animation: vibrate 50ms linear infinite forwards;
 }
 .sigil:active:hover {
   opacity: 1;
   transform: scale(0.8);
-  /* animation: none; */
-}
+} 
+@keyframes vibrate{
+    0% {
+        transform: translateX(-1px) translateY(1px);
+    }
+    100% {
+        transform: translateX(1px) translateY(-1px);
+    }
+} */
 
 
 @keyframes shrink-fade {

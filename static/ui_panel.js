@@ -84,9 +84,13 @@ function SigilBox() {
         
         btn.onmouseover = e => {
             this.desc_field.innerHTML = desc;
+            this.desc_field.style.display = '';
+            // btn.style.animation = 'vibrate 50ms linear infinite forwards';
         };
         btn.onmouseleave = e => {
             this.desc_field.textContent = '';
+            this.desc_field.style.display = 'none';
+            // btn.style.animation = '';
         };
     }
     
@@ -269,7 +273,7 @@ function runBannerMessageDispatcher() {
     
     banner_div.innerHTML = msg;
     banner_div.style.fontSize = font_size + 'px';
-    banner_div.style.opacity = 0.8;
+    banner_div.style.opacity = 0.9;
     
     const opacity_transition_time = 2000; // Set in style.css
     let fade_start = Math.max(

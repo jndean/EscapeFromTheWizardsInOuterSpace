@@ -234,6 +234,7 @@ function Board() {
 
 	this.begin_cell_selector = function(result_callback) {
 
+		this.selection_in_progress = true;
 		this.epoch = performance.now();
 
 		this.cell_select_mousemove_handle = (e) => {
@@ -279,6 +280,7 @@ function Board() {
 	}
 
 	this.end_cell_selector = function() {
+		this.selection_in_progress = false;
 		this.current_selection = null;
 		overlay.removeEventListener('mousemove', this.cell_select_mousemove_handle);
 		overlay.removeEventListener('mousedown', this.cell_select_mousedown_handle);

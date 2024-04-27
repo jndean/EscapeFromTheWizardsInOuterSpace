@@ -317,8 +317,8 @@ function AnimationCharacterDither(x, y, colour) {
 
 
 function AnimationGhostMouse(colour, name) {
-	this.speed = 0.6;
-	this.radius = 0.00025;
+	this.speed = 0.45;//0.6;
+	this.radius = 0.0005; //0.00025;
 	this.dead_zone = this.radius;
 
 	this.targetX = 0.5;
@@ -331,7 +331,7 @@ function AnimationGhostMouse(colour, name) {
 	this.pointer.down = true;
 	this.pointer.moved = true;
 	this.pointer.radius = this.radius;
-	this.max_force = config.SPLAT_FORCE * 90;
+	this.max_force = config.SPLAT_FORCE * 10;//90;
 	this.min_force = 0;
 
 	this.registered = false;

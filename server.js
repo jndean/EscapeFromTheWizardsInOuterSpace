@@ -323,7 +323,7 @@ function new_dangerous_hex_deck() {
 	game.dangerous_hex_deck = 
 		new Array(27).fill('no_choice').concat(
 			new Array(27).fill('choice')).concat(
-				new Array(23).fill('silent'));
+				new Array(24).fill('silent'));
 	shuffle(game.dangerous_hex_deck);
 }
 

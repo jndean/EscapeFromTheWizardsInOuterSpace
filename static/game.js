@@ -33,11 +33,13 @@ function setupMousePointers() {
 
 	// Send my mouse positions to the server
 	setInterval(function() {
-		socket.emit('mouse_update', {
-			mouseX: mouseX,
-			mouseY: mouseY,
-			name: player_name,
-		});
+		if (!board.selection_in_progress) {
+			socket.emit('mouse_update', {
+				mouseX: mouseX,
+				mouseY: mouseY,
+				name: player_name,
+			});
+		}
 	}, 100);
 
 	// Receive all players mouse positions
@@ -350,12 +352,14 @@ function move_transition(data, new_state) {
 		duration = Math.max(duration, move_delay);
 		if (data.sigil != null) {
 			sigilBox.addSigil(data.sigil);
-			let msg = 'Found a Sigil of ' + data.sigil;
+			let msg = 'You move carefully, and find a <font color="' + SIGIL_COLOURS[data.sigil]
+			            + '"> Sigil of ' + data.sigil + '</font>';
+			let msg_duration = 5500;
 			if (new_state.sigils.length > MAX_SIGILS) {
 				msg += '<br> <font size=6>You have too many sigils, and must discard one before continuing. </font>'
 			}
-			displayBannerMessage(msg, 5500);
-			duration = Math.max(duration, 5500);
+			displayBannerMessage(msg, msg_duration);
+			duration = Math.max(duration, msg_duration);
 		}
 	} else {
 		var move_delay = 0;
