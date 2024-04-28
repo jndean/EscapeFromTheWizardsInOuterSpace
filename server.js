@@ -16,7 +16,6 @@ app.get('/', (req, res) => {
 });
 
 var GameData = require('./static/game_data');
-console.log(GameData.GALILEI_WIZARD_SPAWN);
 
 
 // ----------------- State ---------------- //
@@ -50,8 +49,8 @@ function Player(name, colour_id, warlock) {
 		this.current_col = GameData.GALILEI_WIZARD_SPAWN[1];
 	}
 	this.sigils = [];
-
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
+	this.decoy_choice_required = false;
 
 	this.update_history = function(update) { 
 		this.history.pop();
@@ -196,25 +195,43 @@ io.on('connection', (socket) => {
 				}, 
 				private_data={[player_name]: {
 					sigil: sigil,
-					noise_result: noise_result,
+					already_moved: false,
 				}}
 			);
 		} else {
 			// Need to ask player where they want to make a noise
-			//TODO: emit 'choose_noise', which should include the current_pos so player can move token during the transition
-			//TMP:
-			player.update_history(['noise', 7, 11]);
-			broadcast_game_state_transition('move', {
-					moving_player: player_name,
-					noise_coords: [7, 11],
-				}, 
-				private_data={[player_name]: {
-					sigil: null,
-					noise_result: noise_result,
-				}}
+			//TODO: emit 'choose_noise', which should include the current_pos so player can move token during the transition			
+			player.decoy_choice_required = true;
+			broadcast_game_state_transition(
+				'choose_noise', 
+				{}, private_data={},
+				single_recipient=player_name
 			);
 		}
 	
+	});
+
+	socket.on('request_noise', (args) => {
+		if (game.phase != 'game') return;
+		if (player_name != game.player_order[game.current_player]) return;
+		
+		let player = game.players[player_name];
+		if (!game.players[player_name].decoy_choice_required) return;
+		if ((player.current_row == args.row) && (player.current_col == args.col)) return;
+
+		player.decoy_choice_required = false;
+		player.update_history(['noise', args.row, args.col]);
+		
+		// Move player
+		broadcast_game_state_transition('move', {
+				moving_player: player_name,
+				noise_coords: [args.row, args.col],
+			}, 
+			private_data={[player_name]: {
+				sigil: null,
+				already_moved: true,
+			}}
+		);
 	});
 
 	
@@ -323,7 +340,7 @@ function new_dangerous_hex_deck() {
 	game.dangerous_hex_deck = 
 		new Array(27).fill('no_choice').concat(
 			new Array(27).fill('choice')).concat(
-				new Array(24).fill('silent'));
+				new Array(23).fill('silent'));
 	shuffle(game.dangerous_hex_deck);
 }
 
@@ -354,6 +371,7 @@ function broadcast_game_state_transition(
 	transition_name, 
 	data, 
 	private_data={},
+	single_recipient=null,
 ) {
 	// Serialise the game state.
 	// Start with state given to all players
@@ -373,6 +391,7 @@ function broadcast_game_state_transition(
 	// Next customise the state with player-specific (secret) data
 	for (const [name, socket] of Object.entries(game.sockets)) {
 		if (socket == null) continue;
+		if ((single_recipient != null) && (single_recipient != name)) continue;
 		
 		let player = game.players[name];
 		let player_state = {...common_state};
@@ -380,6 +399,7 @@ function broadcast_game_state_transition(
 		player_state.is_warlock = player.is_warlock;
 		player_state.player_row = player.current_row;
 		player_state.player_col = player.current_col;
+		player_state.decoy_choice_required = player.decoy_choice_required;
 
 		if (private_data.hasOwnProperty(name)) {
 			data = Object.assign({...private_data[name]}, data);
@@ -394,9 +414,11 @@ function broadcast_game_state_transition(
 }
 
 function shuffle(a) {
-    for (let i = a.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [a[i], a[j]] = [a[j], a[i]];
-    }
+	for(let repetition = 0; repetition < 7; ++repetition) {
+		for (let i = a.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[a[i], a[j]] = [a[j], a[i]];
+	    }
+	}
     return a;
 }

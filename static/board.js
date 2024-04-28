@@ -234,6 +234,9 @@ function Board() {
 
 	this.begin_cell_selector = function(result_callback) {
 
+		if (this.selection_in_progress) {
+			this.end_cell_selector();	
+		}
 		this.selection_in_progress = true;
 		this.epoch = performance.now();
 
@@ -280,6 +283,7 @@ function Board() {
 	}
 
 	this.end_cell_selector = function() {
+		if (!this.selection_in_progress) return;
 		this.selection_in_progress = false;
 		this.current_selection = null;
 		overlay.removeEventListener('mousemove', this.cell_select_mousemove_handle);

@@ -167,7 +167,7 @@ function ActionBox(game_state) {
     this.game_state = game_state;
 
     // this.available_actions = new Set();
-    this.act_names = ['move', 'attack', 'sigil', 'discard', 'finish'];
+    this.act_names = ['move', 'decoy', 'attack', 'sigil', 'discard', 'finish'];
     this.btn_names = this.act_names.concat(['confirm', 'cancel']);
     this.btn = {};
     for (let i = 0; i < this.btn_names.length; ++i) {
@@ -183,6 +183,8 @@ function ActionBox(game_state) {
         'choose_action',
         'choose_move_hex',
         'choose_move_hex_confirm',
+        'choose_decoy_hex',
+        'choose_decoy_hex_confirm',
         'choose_attack_hex',
         'choose_attack_hex_confirm',
         'choose_sigil',
@@ -192,17 +194,33 @@ function ActionBox(game_state) {
         'choose_discard',
     ];
 
+    this.state_msgs = {
+        notmyturn: '<font color="#777" size=5>It is not your turn...</font>',
+        choose_action: 'Choose an action...',
+        choose_move_hex: 'Choose where to go',
+        choose_move_hex_confirm: 'Confirm move',
+        choose_decoy_hex: 'Choose a hex to disturb',
+        choose_decoy_hex_confirm: 'Confirm disturbance',
+        choose_attack_hex: 'Choose a hex to attack',
+        choose_attack_hex_confirm: 'Confirm attack',
+        choose_sigil: '',
+        choose_sigil_confirm: '',
+        choose_detection_hex: '',
+        choose_detection_hex_confirm: '',
+        choose_discard: '',
+    };
+
     this.update = function(new_state_str=null) {
         if (new_state_str != null) this.state = new_state_str;
+
+        this.textbox.innerHTML = this.state_msgs[this.state];
 
         let visible_buttons = new Set();
         switch (this.state) {
             case 'notmyturn':
-                this.textbox.innerHTML = '<font color="#777" size=5>It is not your turn...</font>';
                 break;
                 
             case 'choose_action':
-                this.textbox.innerHTML = 'Choose an action...';
                 if (this.game_state.sigils.length > 0 && !this.game_state.is_warlock) {
                     visible_buttons.add('sigil');
                 }
@@ -214,6 +232,8 @@ function ActionBox(game_state) {
                 } else {
                     if (this.game_state.sigils.length > MAX_SIGILS) {
                         visible_buttons.add('discard');
+                    } else if (this.game_state.decoy_choice_required) {
+                        visible_buttons.add('decoy');
                     } else {
                         visible_buttons.add('finish');
                     }
@@ -222,15 +242,13 @@ function ActionBox(game_state) {
 
             case 'choose_attack_hex':
             case 'choose_move_hex':
-                this.textbox.innerHTML = (this.state == 'choose_move_hex') ?
-                    'Choose where to go' : 'Choose a hex to attack';
+            case 'choose_decoy_hex':
                 visible_buttons.add('cancel');
                 break;
 
             case 'choose_attack_hex_confirm':
             case 'choose_move_hex_confirm':
-                this.textbox.innerHTML = (this.state == 'choose_move_hex_confirm') ?
-                    'Confirm move' : 'Confirm attack';
+            case 'choose_decoy_hex_confirm':
                 visible_buttons.add('confirm');
                 visible_buttons.add('cancel');
                 break;

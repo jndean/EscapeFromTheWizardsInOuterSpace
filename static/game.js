@@ -7,6 +7,7 @@ game = {
 	current_player: null,
 	sigils: [],
 	moved_this_turn: false,
+	decoy_choice_required: false,
 	player_col: undefined,
 	player_row: undefined,
 }
@@ -58,7 +59,6 @@ var actionBtnHandlers = {};
 // ----- Move ----- //
 
 actionBtnHandlers['move'] = function () {
-	board.end_cell_selector(); // Keepme
 	board.begin_cell_selector(moveHexSelectedCallback);
 	actionBox.update('choose_move_hex');
 }
@@ -85,7 +85,6 @@ actionBtnHandlers['cancel'] = function () {
 // ----- Attack ----- //
 
 actionBtnHandlers['attack'] = function () {
-	board.end_cell_selector(); // Keepme
 	board.begin_cell_selector(attackHexSelectedCallback);
 	actionBox.update('choose_attack_hex');
 }
@@ -102,6 +101,27 @@ function confirmAttackButtonHandler () {
 	});
 	board.end_cell_selector();
 	actionBox.update('choose_attack_hex');
+}
+
+// ----- Decoy ----- //
+
+actionBtnHandlers['decoy'] = function () {
+	board.begin_cell_selector(decoyHexSelectedCallback);
+	actionBox.update('choose_decoy_hex');
+}
+
+function decoyHexSelectedCallback() {
+	actionBtnHandlers['confirm'] = confirmDecoyButtonHandler;
+	actionBox.update('choose_decoy_hex_confirm');
+}
+
+function confirmDecoyButtonHandler () {
+	socket.emit('request_noise', {
+		row: board.current_selection.row,
+		col: board.current_selection.col,
+	});
+	board.end_cell_selector();
+	actionBox.update('choose_decoy_hex');
 }
 
 // ----- Finish ----- //
@@ -127,6 +147,7 @@ function setGameState(new_state) {
 	game.player_row = new_state.player_row;
 	game.phase = new_state.phase;
 	game.moved_this_turn = new_state.moved_this_turn;
+	game.decoy_choice_required = new_state.decoy_choice_required;
 
 	for (const [name, player] of Object.entries(new_state.players)) {
 		game.players[name].history = player.history;
@@ -136,13 +157,14 @@ function setGameState(new_state) {
 	if (game.player_changed) {
 		game.player_changed = false;
 		if (player_name == game.player_order[game.current_player]) {
+			actionBox.update('choose_action');
 			if (!game.moved_this_turn) {
 				board.begin_cell_selector(moveHexSelectedCallback);
 			}
-			actionBox.update('choose_action');
-		} else {
-			actionBox.update('notmyturn');
 		}
+	}
+	if (player_name != game.player_order[game.current_player]) {
+		actionBox.update('notmyturn');
 	}
 
 	updateUI(game);
@@ -203,7 +225,7 @@ const transition_functions = {
 	start_game_animation: start_game_animation_transition,
 	player_rejoined: player_rejoined_transition,
 	move: move_transition,
-	noise: noise_transition,
+	choose_noise: choose_noise_transition,
 	attack: attack_transition,
 	next_player: next_player_transition,
 }
@@ -299,40 +321,6 @@ function player_rejoined_transition(args, new_state) {
 	return 1000;
 }
 
-function noise_transition(data, _) {
-	let player = game.players[data.player_name];
-
-	// Noise animation
-	let [x, y] = board.cells[data.cell_row][data.cell_col].center_coords;
-	let bounds = overlay.getBoundingClientRect();
-	x = scaleByPixelRatio(x) / canvas.width;
-	y = 1.0 - scaleByPixelRatio(y) / canvas.height;
-	createNoiseAnimation(x, y, COLOURS[player.colour_id]);
-
-	// Update noise token that are in use
-	let marked_cells = new Set();
-	for (let i = data.history.length - 1; i >= 0 ; --i) {
-		let event = data.history[i];
-		if (event === null) 
-			continue;
-		let [event_type, cell_row, cell_col] = event;
-		let cell = board.cells[cell_row][cell_col];
-		cell.transition_noise_token(player.colour_id, i, 'blank');
-		marked_cells.add(1000*cell_row + cell_col); // 2D coord "hash"
-	}
-
-	// Remove disused noise tokens
-	let disused = player.currently_marked_cells.difference(marked_cells);
-	disused.forEach((k) => {
-		let cell = board.cells[Math.floor(k / 1000)][k % 1000];
-		cell.transition_noise_token(player.colour_id, null);
-	});
-	player.currently_marked_cells = marked_cells;
-
-	return 3000;
-}
-
-
 function move_transition(data, new_state) {
 	game.moved_this_turn = true;
 	let duration = 0;
@@ -344,7 +332,7 @@ function move_transition(data, new_state) {
 	}
 
 	// Moving player updates player token position
-	if (data.moving_player == player_name) {
+	if ((data.moving_player == player_name) && !data.already_moved) {
 		board.end_cell_selector();
 		actionBox.update('choose_action');
 		board.move_player_token(new_state.player_row, new_state.player_col);
@@ -360,7 +348,14 @@ function move_transition(data, new_state) {
 			}
 			displayBannerMessage(msg, msg_duration);
 			duration = Math.max(duration, msg_duration);
+		} else if (data.noise_coords === null) {
+			let msg_duration = 4000; // Do we want these common messages to be faster?
+			displayBannerMessage('You move carefully, but find nothing...', msg_duration);
+			duration = Math.max(duration, msg_duration);
 		}
+	} else if ((data.moving_player == player_name) && data.already_moved) {
+		game.decoy_choice_required = new_state.decoy_choice_required;
+		actionBox.update('choose_action');
 	} else {
 		var move_delay = 0;
 	}
@@ -383,6 +378,26 @@ function move_transition(data, new_state) {
 	setTimeout(() => {board.display_player_history(moving_player);}, move_delay);
 
 	return duration;
+}
+
+
+function choose_noise_transition(_, new_state) {
+	board.move_player_token(new_state.player_row, new_state.player_col);
+	var move_delay = 2000;
+	var msg_delay = 3000;
+	game.moved_this_turn = new_state.moved_this_turn;
+	game.decoy_choice_required = new_state.decoy_choice_required;
+	setTimeout(
+		() => {
+			displayBannerMessage("Choose a hex to disturb", msg_delay);
+			actionBox.update('choose_decoy_hex');
+			setTimeout(() => {
+				board.begin_cell_selector(decoyHexSelectedCallback);
+			}, 2000);
+		},
+		move_delay
+	);
+	return move_delay + msg_delay;
 }
 
 function attack_transition(data, _) {
