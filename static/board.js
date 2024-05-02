@@ -7,11 +7,14 @@ var map_canvas_ctx = map_canvas.getContext('2d');
 
 
 const HEX_ANGLE = 0.523598776; // 30 degrees in radians;
-const HEX_SIDE = 35;
+const HEX_SIDE = 35; // pixels
 const HEX_WIDTH = Math.sin(HEX_ANGLE) * HEX_SIDE;
 const HEX_RAD = Math.cos(HEX_ANGLE) * HEX_SIDE;
 const HEX_RECT_WIDTH = HEX_SIDE + 2 * HEX_WIDTH;
 const HEX_RECT_HEIGHT = 2 * HEX_RAD;
+const HEX_HALF_WIDTH = HEX_RECT_WIDTH / 2;
+const HEX_HALF_SIDE= HEX_SIDE / 2;
+
 
 const HEX_Y_START = 13;
 const HEX_X_START = 18;
@@ -27,7 +30,7 @@ function GridCell(row, column) {
 	this.x = HEX_X_START + column * (HEX_SIDE + HEX_WIDTH);
 	this.y = HEX_Y_START + row * HEX_RECT_HEIGHT;
 	if (column % 2) this.y += HEX_RAD;
-	this.center_coords = [this.x + HEX_RECT_WIDTH / 2, this.y + HEX_RECT_HEIGHT / 2];
+	this.center_coords = [this.x + HEX_HALF_WIDTH, this.y + HEX_RECT_HEIGHT / 2];
 
 	this.is_wall = GALILEI_WALLS_BY_COL[column].includes(row+1);
 	this.is_safe = GALILEI_SAFE_BY_COL[column].includes(row+1);
@@ -39,16 +42,18 @@ function GridCell(row, column) {
 	this.unused_positions = [0, 1, 2, 3, 4, 5];
 	shuffle(this.unused_positions);
 
-	this.draw = function(fill, line, line_width) {
+	this.draw = function(fill, line, line_width, shrink=1.0) {
 	    map_canvas_ctx.lineWidth = line_width;
 
+		let [c_x, c_y] = this.center_coords;
 		map_canvas_ctx.beginPath();
-	    map_canvas_ctx.moveTo(this.x, this.y + HEX_RAD);
-	    map_canvas_ctx.lineTo(this.x + HEX_WIDTH, this.y + HEX_RECT_HEIGHT);
-	    map_canvas_ctx.lineTo(this.x + HEX_WIDTH + HEX_SIDE, this.y + HEX_RECT_HEIGHT);
-	    map_canvas_ctx.lineTo(this.x + HEX_RECT_WIDTH, this.y + HEX_RAD);
-	    map_canvas_ctx.lineTo(this.x + HEX_SIDE + HEX_WIDTH, this.y);
-	    map_canvas_ctx.lineTo(this.x + HEX_WIDTH, this.y);
+	    map_canvas_ctx.moveTo(c_x - HEX_HALF_WIDTH * shrink, c_y);
+	    map_canvas_ctx.lineTo(c_x - HEX_HALF_SIDE * shrink, c_y - HEX_RAD * shrink);
+	    map_canvas_ctx.lineTo(c_x + HEX_HALF_SIDE * shrink, c_y - HEX_RAD * shrink);
+	    map_canvas_ctx.lineTo(c_x + HEX_HALF_WIDTH * shrink, c_y);
+	    map_canvas_ctx.lineTo(c_x + HEX_HALF_SIDE * shrink, c_y + HEX_RAD * shrink);
+	    map_canvas_ctx.lineTo(c_x - HEX_HALF_SIDE * shrink, c_y + HEX_RAD * shrink);
+	    map_canvas_ctx.lineTo(c_x - HEX_HALF_WIDTH * shrink, c_y);
 	    map_canvas_ctx.closePath();
 
 	    if (fill != null) {
@@ -59,19 +64,6 @@ function GridCell(row, column) {
 	    	map_canvas_ctx.strokeStyle = line;
 			map_canvas_ctx.stroke();
 	    }
-	}
-
-	this.draw_base = function() {
-		if (this.is_wall) 
-			return;
-		var fill = '#000000';
-		var line = '#aaaaaa';
-		var line_width = 0.2;
-		if (this.is_safe) {
-			line_width = 0.3;
-			fill = '#292929';
-		}
-		this.draw(fill, line, line_width);
 	}
 
 	this.colour_to_position = function(colour_id) {
@@ -144,7 +136,9 @@ function Board() {
 	this.num_rows = 14;
 	this.num_cols = 23;
 	this.cells = [];
+	this.player_cell = null;
 	this.current_selection = null;
+	this.current_selection_colour = null;
 	this.current_mouseover = null;
 	this.current_historys = {};
 
@@ -160,13 +154,14 @@ function Board() {
 		this.player_token = document.createElement('img');
 		this.player_token.className = 'player-token';
 		this.player_token.src = 'static/symbols/' + ACADEMIC_NAMES[colour_id] + '.png';
-		let cell = this.cells[row][col];
 		map_counters_layer.appendChild(this.player_token);
 		this.move_player_token(row, col);
+		this.player_cell = this.cells[row][col];
 	}
 
 	this.move_player_token = function(row, col) {
-		let [x, y] = this.cells[row][col].center_coords;
+		this.player_cell = this.cells[row][col];
+		let [x, y] = this.player_cell.center_coords;
 		this.player_token.style.left = (x - PLAYER_TOKEN_SIZE / 2) + 'px';
     	this.player_token.style.top = (y - PLAYER_TOKEN_SIZE / 2) + 'px';
 	}
@@ -201,7 +196,7 @@ function Board() {
 		posX /= board_scale;
 		posY /= board_scale;
 
-		let col = (posX - HEX_X_START - HEX_RECT_WIDTH / 2) / (HEX_SIDE + HEX_WIDTH);
+		let col = (posX - HEX_X_START - HEX_HALF_WIDTH) / (HEX_SIDE + HEX_WIDTH);
 		let col1 = Math.floor(col);
 		let col2 = Math.ceil(col);
 
@@ -216,7 +211,7 @@ function Board() {
 		let min_distance = map_canvas.width * map_canvas.width;
 		for (let i = 0; i < options.length; ++i) {
 			let [r, c] = options[i];
-			let o_x = HEX_X_START + (HEX_RECT_WIDTH) / 2 + c * (HEX_SIDE + HEX_WIDTH);
+			let o_x = HEX_X_START + HEX_HALF_WIDTH + c * (HEX_SIDE + HEX_WIDTH);
 			let o_y = HEX_Y_START + (HEX_RECT_HEIGHT) / 2 + r * HEX_RECT_HEIGHT + HEX_RAD * (c % 2);
 			let dx = o_x - posX;
 			let dy = o_y - posY;
@@ -232,13 +227,12 @@ function Board() {
 		return this.cells[row][col];
 	}
 
-	this.begin_cell_selector = function(result_callback) {
+	this.begin_cell_selector = function(result_callback, nhops, all_hexes_unsafe=false) {
 
-		if (this.selection_in_progress) {
-			this.end_cell_selector();	
-		}
+		if (this.selection_in_progress) this.end_cell_selector();	
 		this.selection_in_progress = true;
-		this.epoch = performance.now();
+		this.current_valid_selections = (nhops === null) ?
+			null : this.get_nhop_neighbours(this.player_cell, nhops);
 
 		this.cell_select_mousemove_handle = (e) => {
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
@@ -246,14 +240,28 @@ function Board() {
 			this.current_mouseover = cell;
 	
 			map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-			if (cell === null || cell.is_wall) return;
-			if (cell.is_safe)
-				cell.draw('#00ff0020', '#00ff0050', 3);
-			else
-				cell.draw('#ff000018', '#ff000050', 3);
+			if (this.current_valid_selections !== null) {
+				// Highlight valid selections
+				for (let i = 0; i < this.current_valid_selections.length; ++i) {
+					let opt = this.current_valid_selections[i];
+					let colour = (!opt.is_safe || all_hexes_unsafe)? '#ff0000' : '#00ff00';
+					// if (opt === cell) {
+					// 	cell.draw(null, colour + '50', 4, shrink=0.45);
+					// } else {
+					// 	opt.draw(colour + '30', null, 0, shrink=0.45);
+					// }
+					opt.draw(null, colour + '50', 3, shrink=0.9);
+					if (opt === cell) {
+						opt.draw(colour + '30', null, 0, shrink=0.9);
+					}
+				}
+				return;
+			}
 
-			// Redraw selected hex here too?
-				
+			// Otherwise highlight any hex on mouseover
+			if (cell !== null && !cell.is_wall) {
+				cell.draw(null, '#ff000050', 3);
+			}
 		};
 		overlay.addEventListener('mousemove', this.cell_select_mousemove_handle);
 
@@ -264,18 +272,16 @@ function Board() {
 			if (cell === null || cell.is_wall) return;
 
 			this.current_selection = cell;
+			this.current_selection_colour = (!cell.is_safe || all_hexes_unsafe) ?
+				'#ff0000' : '#00ff00';
+			this.epoch = performance.now();
 			requestAnimationFrame(()=>this.draw_selections());
 			result_callback();
-			// TMP
-			// socket.emit('tmp_mouseclick', [cell.row, cell.col]);
-			// let [x, y] = cell.center_coords;
-			// this.player_token.style.left = (x - PLAYER_TOKEN_SIZE / 2) + 'px';
-			// this.player_token.style.top = (y - PLAYER_TOKEN_SIZE / 2) + 'px';
 		};
 		overlay.addEventListener('mousedown', this.cell_select_mousedown_handle);
 
 		this.cell_select_mouseout_handle = (e) => {
-			map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
+			// map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
 		};
 		overlay.addEventListener('mouseout', this.cell_select_mouseout_handle);
 		
@@ -286,6 +292,7 @@ function Board() {
 		if (!this.selection_in_progress) return;
 		this.selection_in_progress = false;
 		this.current_selection = null;
+		map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
 		overlay.removeEventListener('mousemove', this.cell_select_mousemove_handle);
 		overlay.removeEventListener('mousedown', this.cell_select_mousedown_handle);
 		overlay.removeEventListener('mouseout', this.cell_select_mouseout_handle);
@@ -294,9 +301,9 @@ function Board() {
 	this.draw_selections = function() {
 		if (this.current_selection == null) return;
 		map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-		let alpha = Math.floor(128 + 64 * Math.sin((performance.now() - this.epoch) / 200));
-		let colour = '#00ffff' + alpha.toString(16).padStart(2, '0');
-		this.current_selection.draw('#00000000', colour, 3);
+		let alpha = Math.floor(128 + 64 * Math.sin((performance.now() - this.epoch ) / 200 - 1.57));
+		let colour = this.current_selection_colour + alpha.toString(16).padStart(2, '0');
+		this.current_selection.draw(null, colour, 4, shrink=0.9);
 		requestAnimationFrame(()=>this.draw_selections());
 	}
 
@@ -321,16 +328,20 @@ function Board() {
 	}
 
 	this.get_nhop_neighbours = function(cell, nhops) {
-		let neighbours = [cell];
-		let already_visited = new Set();
+		if (nhops < 1) return [];
 
-		for (let hop = 0; hop < nhops; ++hop) {
+		let neighbours = this.get_cell_neighbours(cell);
+		var already_visited = new Set(neighbours.map(n => {return n.id;}));
+		already_visited.add(cell.id);
+
+		for (let hop = 1; hop < nhops; ++hop) {
 			let next_neighbours = [...neighbours];
 			neighbours.forEach(n => {
 				this.get_cell_neighbours(n).forEach(nn => {
 					if (already_visited.has(nn.id)) 
 						return;
 					next_neighbours.push(nn);
+					already_visited.add(nn.id);
 				});
 			});
 			neighbours = next_neighbours;

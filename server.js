@@ -44,13 +44,16 @@ function Player(name, colour_id, warlock) {
 	if (warlock) {
 		this.current_row = GameData.GALILEI_WARLOCK_SPAWN[0];
 		this.current_col = GameData.GALILEI_WARLOCK_SPAWN[1];
+		this.base_speed = 2;
 	} else {
 		this.current_row = GameData.GALILEI_WIZARD_SPAWN[0];
 		this.current_col = GameData.GALILEI_WIZARD_SPAWN[1];
+		this.base_speed = 1;
 	}
 	this.sigils = [];
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
 	this.decoy_choice_required = false;
+	this.speed_bonus = false;
 
 	this.update_history = function(update) { 
 		this.history.pop();
@@ -196,15 +199,14 @@ io.on('connection', (socket) => {
 				private_data={[player_name]: {
 					sigil: sigil,
 					already_moved: false,
+					danger_result: noise_result,
 				}}
 			);
 		} else {
 			// Need to ask player where they want to make a noise
-			//TODO: emit 'choose_noise', which should include the current_pos so player can move token during the transition			
 			player.decoy_choice_required = true;
 			broadcast_game_state_transition(
-				'choose_noise', 
-				{}, private_data={},
+				'choose_noise', {}, private_data={},
 				single_recipient=player_name
 			);
 		}
@@ -400,6 +402,7 @@ function broadcast_game_state_transition(
 		player_state.player_row = player.current_row;
 		player_state.player_col = player.current_col;
 		player_state.decoy_choice_required = player.decoy_choice_required;
+		player_state.movement_speed = player.base_speed + player.speed_bonus;
 
 		if (private_data.hasOwnProperty(name)) {
 			data = Object.assign({...private_data[name]}, data);

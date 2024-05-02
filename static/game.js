@@ -59,7 +59,7 @@ var actionBtnHandlers = {};
 // ----- Move ----- //
 
 actionBtnHandlers['move'] = function () {
-	board.begin_cell_selector(moveHexSelectedCallback);
+	board.begin_cell_selector(moveHexSelectedCallback, game.movement_speed);
 	actionBox.update('choose_move_hex');
 }
 
@@ -85,7 +85,11 @@ actionBtnHandlers['cancel'] = function () {
 // ----- Attack ----- //
 
 actionBtnHandlers['attack'] = function () {
-	board.begin_cell_selector(attackHexSelectedCallback);
+	board.begin_cell_selector(
+		attackHexSelectedCallback,
+		game.movement_speed,
+		all_hexes_unsafe=true
+	);
 	actionBox.update('choose_attack_hex');
 }
 
@@ -106,7 +110,11 @@ function confirmAttackButtonHandler () {
 // ----- Decoy ----- //
 
 actionBtnHandlers['decoy'] = function () {
-	board.begin_cell_selector(decoyHexSelectedCallback);
+	board.begin_cell_selector(
+		decoyHexSelectedCallback,
+		null,
+		all_hexes_unsafe=true
+	);
 	actionBox.update('choose_decoy_hex');
 }
 
@@ -148,6 +156,7 @@ function setGameState(new_state) {
 	game.phase = new_state.phase;
 	game.moved_this_turn = new_state.moved_this_turn;
 	game.decoy_choice_required = new_state.decoy_choice_required;
+	game.movement_speed = new_state.movement_speed;
 
 	for (const [name, player] of Object.entries(new_state.players)) {
 		game.players[name].history = player.history;
@@ -159,7 +168,7 @@ function setGameState(new_state) {
 		if (player_name == game.player_order[game.current_player]) {
 			actionBox.update('choose_action');
 			if (!game.moved_this_turn) {
-				board.begin_cell_selector(moveHexSelectedCallback);
+				board.begin_cell_selector(moveHexSelectedCallback, game.movement_speed);
 			}
 		}
 	}
@@ -334,9 +343,9 @@ function move_transition(data, new_state) {
 	// Moving player updates player token position
 	if ((data.moving_player == player_name) && !data.already_moved) {
 		board.end_cell_selector();
-		actionBox.update('choose_action');
-		board.move_player_token(new_state.player_row, new_state.player_col);
 		var move_delay = 2000;
+		board.move_player_token(new_state.player_row, new_state.player_col);
+		actionBox.transitionUpdate('You are moving...', move_delay, 'choose_action');
 		duration = Math.max(duration, move_delay);
 		if (data.sigil != null) {
 			sigilBox.addSigil(data.sigil);
@@ -348,7 +357,7 @@ function move_transition(data, new_state) {
 			}
 			displayBannerMessage(msg, msg_duration);
 			duration = Math.max(duration, msg_duration);
-		} else if (data.noise_coords === null) {
+		} else if (data.danger_result == 'silent') {
 			let msg_duration = 4000; // Do we want these common messages to be faster?
 			displayBannerMessage('You move carefully, but find nothing...', msg_duration);
 			duration = Math.max(duration, msg_duration);
@@ -387,17 +396,15 @@ function choose_noise_transition(_, new_state) {
 	var msg_delay = 3000;
 	game.moved_this_turn = new_state.moved_this_turn;
 	game.decoy_choice_required = new_state.decoy_choice_required;
+	actionBox.transitionUpdate('You are moving...', move_delay, 'choose_decoy_hex');
 	setTimeout(
 		() => {
 			displayBannerMessage("Choose a hex to disturb", msg_delay);
-			actionBox.update('choose_decoy_hex');
-			setTimeout(() => {
-				board.begin_cell_selector(decoyHexSelectedCallback);
-			}, 2000);
+			board.begin_cell_selector(decoyHexSelectedCallback, null, all_hexes_unsafe=true);
 		},
 		move_delay
 	);
-	return move_delay + msg_delay;
+	return move_delay;
 }
 
 function attack_transition(data, _) {

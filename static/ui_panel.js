@@ -199,7 +199,7 @@ function ActionBox(game_state) {
         choose_action: 'Choose an action...',
         choose_move_hex: 'Choose where to go',
         choose_move_hex_confirm: 'Confirm move',
-        choose_decoy_hex: 'Choose a hex to disturb',
+        choose_decoy_hex: 'Choose any hex to disturb',
         choose_decoy_hex_confirm: 'Confirm disturbance',
         choose_attack_hex: 'Choose a hex to attack',
         choose_attack_hex_confirm: 'Confirm attack',
@@ -209,6 +209,15 @@ function ActionBox(game_state) {
         choose_detection_hex_confirm: '',
         choose_discard: '',
     };
+
+    this.transitionUpdate = function(message, duration, new_state_str) {
+        this.textbox.innerHTML = message;
+        for (let i = 0; i < this.btn_names.length; ++i) {
+            let name = this.btn_names[i];
+            this.btn[name].style.display = 'none';
+        }
+        setTimeout(() => {this.update(new_state_str);}, duration);
+    }
 
     this.update = function(new_state_str=null) {
         if (new_state_str != null) this.state = new_state_str;
