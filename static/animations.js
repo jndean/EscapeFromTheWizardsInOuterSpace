@@ -435,25 +435,102 @@ function createAnimationSpiral(
 
 
 function createNoiseAnimation(x, y, colour) {
-	var n = Math.floor(1 + Math.random() * 2.5);
-	var angle = Math.random() * 2 * Math.PI;
-	var anims = [];
 
-	for (var i = 0; i < n; ++i) {
-		var d = 0.003 + 0.007 * Math.random();
-		angle += (1 - Math.random() * 0.3) * Math.PI;
-		var dx = d * Math.sin(angle);
-		var dy = d * Math.cos(angle);
-		anims.push(new AnimationLinear(
-			[new Point(x-dx, y-dy), new Point(x+dx, y+dy)],
-			0.08,
-			0.05,
-			colour
-		))
-		anims.push(new AnimationPause(0.5 * Math.random()))
+	// Randomly pick an effect to play
+	let noise_type = Math.floor(4 * Math.random());
+
+	if (noise_type == 0) {
+		// Fast or slow spin with a puff
+
+		let theta = Math.random() * 6.3;
+		if (Math.random() < 0.5) // Fast spin
+			var spin = createAnimationSpiral(x, y, colour, 0.5, 0.01, 32, 0.01, 0.01, theta, theta+50, 0);
+		else // Slow spin
+		var spin = createAnimationSpiral(x, y, colour, 0.03, 0.002, 32, 0.02, 0.01, theta, theta+6, 0);
+		
+		var angle = Math.random() * 2 * Math.PI;
+		var dx = 0.01 * Math.sin(angle);
+		var dy = 0.01 * Math.cos(angle);
+
+		var a = new AnimationParallel([
+			spin,
+			new AnimationSequence([
+				new AnimationPause(0.8),
+				new AnimationLinear([new Point(x-dx, y-dy), new Point(x+dx, y+dy)], 0.2, 0.02, colour)
+			])
+		]);
+		a.register();
+
+	} else if (noise_type == 1) {
+		// Spirit in the wind
+
+		let theta = Math.random() * 6.3;
+		var spin = createAnimationSpiral(x, y, colour, 0.1, 0.005, 32, 0.01, 0.00, theta, theta+20, 0.01);
+		
+		var angle = Math.random() * 2 * Math.PI;
+		var dx = 0.01 * Math.sin(angle);
+		var dy = 0.01 * Math.cos(angle);
+		var nocolour = {r: 0, g: 0, b: 0};
+
+		var a = new AnimationParallel([
+			spin,
+			new AnimationSequence([
+				new AnimationLinear([new Point(x, y), new Point(x+dx*2, y+dy*2)], 0.03, 0.1, nocolour),
+				new AnimationLoop(
+					new AnimationLinear([new Point(x, y), new Point(x+dx, y+dy)], 0.3, 0.1, nocolour),
+				repetitions=5)
+			])
+		]);
+		a.register();
+
+	} else if (noise_type == 2) {
+		// Oscillating star
+		let theta = Math.random() * 6.3;
+		var spin = createAnimationSpiral(x, y, colour, 0.1, 0.005, 32, 0.01, 0.00, theta, theta+20, 0.01);
+		
+		var angle = Math.random() * 2 * Math.PI;
+		var dx = 0.01 * Math.sin(angle);
+		var dy = 0.01 * Math.cos(angle);
+		var nocolour = {r: 0.001, g: 0.001, b: 0.001};
+
+		var a = new AnimationParallel([
+			spin,
+			new AnimationLoop(new AnimationParallel([
+				new AnimationParallel([
+					new AnimationLinear([new Point(x, y), new Point(x+0.02, y)], 0.4, 0.1, nocolour),
+					new AnimationLinear([new Point(x, y), new Point(x-0.02, y)], 0.4, 0.1, nocolour),
+				]),
+				new AnimationParallel([
+					new AnimationLinear([new Point(x, y), new Point(x, y+0.03)], 0.4, 0.1, nocolour),
+					new AnimationLinear([new Point(x, y), new Point(x, y-0.03)], 0.4, 0.1, nocolour),
+				])
+			]), repetitions=12)
+		]);
+		a.register();
+
+	} else {
+
+		// Idk some random movements
+		var n = Math.floor(1 + Math.random() * 2.5);
+		var angle = Math.random() * 2 * Math.PI;
+		var anims = [];
+
+		for (var i = 0; i < n; ++i) {
+			var d = 0.003 + 0.007 * Math.random();
+			angle += (1 - Math.random() * 0.3) * Math.PI;
+			var dx = d * Math.sin(angle);
+			var dy = d * Math.cos(angle);
+			anims.push(new AnimationLinear(
+				[new Point(x-dx, y-dy), new Point(x+dx, y+dy)],
+				0.08,
+				0.05,
+				colour
+			))
+			anims.push(new AnimationPause(0.5 * Math.random()))
+		}
+		var a = new AnimationSequence(anims);
+		a.register();
 	}
-	var a = new AnimationSequence(anims);
-	a.register();
 }
 
 
@@ -612,7 +689,7 @@ document.addEventListener('mousedown', e => {
 
     let x = scaleByPixelRatio(e.offsetX) / canvas.width;
     let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
-    //createNoiseAnimation(x, y, randomColour());
+    // createNoiseAnimation(x, y, randomColour());
     // createAttackAnimation(x, y, randomColour(), randomColour());
     //createEscapeAnimation(x, y, randomColour());
     return;

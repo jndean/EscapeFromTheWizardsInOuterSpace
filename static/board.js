@@ -245,11 +245,6 @@ function Board() {
 				for (let i = 0; i < this.current_valid_selections.length; ++i) {
 					let opt = this.current_valid_selections[i];
 					let colour = (!opt.is_safe || all_hexes_unsafe)? '#ff0000' : '#00ff00';
-					// if (opt === cell) {
-					// 	cell.draw(null, colour + '50', 4, shrink=0.45);
-					// } else {
-					// 	opt.draw(colour + '30', null, 0, shrink=0.45);
-					// }
 					opt.draw(null, colour + '50', 3, shrink=0.9);
 					if (opt === cell) {
 						opt.draw(colour + '30', null, 0, shrink=0.9);
@@ -270,6 +265,9 @@ function Board() {
 	
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
 			if (cell === null || cell.is_wall) return;
+			if (this.current_valid_selections !== null && 
+				!this.current_valid_selections.includes(cell)) 
+				return;
 
 			this.current_selection = cell;
 			this.current_selection_colour = (!cell.is_safe || all_hexes_unsafe) ?

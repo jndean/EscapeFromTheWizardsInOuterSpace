@@ -27,6 +27,10 @@ var game = {
 	player_order: [],
 	current_player: null,
 	moved_this_turn: false,
+	log: {
+		lines: [],
+		formatted: "",
+	}
 };
 
 var lobby = {
@@ -192,6 +196,10 @@ io.on('connection', (socket) => {
 
 		// Communicate the result
 		if (noise_result != 'choice') {
+			
+			if (noise_coords == null) addToLog(player_name + " moved silently");
+			else                      addToLog(player_name + " disturbed the aether");
+
 			broadcast_game_state_transition('move', {
 					moving_player: player_name,
 					noise_coords: noise_coords,
@@ -223,6 +231,7 @@ io.on('connection', (socket) => {
 
 		player.decoy_choice_required = false;
 		player.update_history(['noise', args.row, args.col]);
+		addToLog(player_name + " disturbed the aether");
 		
 		// Move player
 		broadcast_game_state_transition('move', {
@@ -323,6 +332,8 @@ function start_new_game(map_name) {
 	// Create decks
 	new_dangerous_hex_deck();
 	new_sigil_deck();
+
+	addToLog("The lights go out, the hunt begins...");
 	
 	// Starting the game is a 2-part, 2-message process
 	game.phase = 'starting';
@@ -382,6 +393,7 @@ function broadcast_game_state_transition(
 		current_player: game.current_player,
 		players: {},
 		moved_this_turn: game.moved_this_turn,
+		log: game.log.formatted,
 	};
 	for (const [name, player] of Object.entries(game.players)) {
 		common_state.players[name] = {
@@ -414,6 +426,14 @@ function broadcast_game_state_transition(
 			new_state: player_state,
 		});
 	}
+}
+
+function addToLog(msg) {
+	const prompt = ">>  ";
+	let lines = game.log.lines;
+	lines.unshift(msg);
+	while (lines.length > 6) lines.pop();
+	game.log.formatted = prompt + lines.join('<br>' + prompt);
 }
 
 function shuffle(a) {

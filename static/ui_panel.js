@@ -2,6 +2,7 @@
 var player_icons = {};
 var actionBox = undefined;
 var sigilBox = undefined;
+var logBox = document.getElementById('log_box')
 
 // Make right clicks do nothing
 document.addEventListener(
@@ -13,18 +14,6 @@ document.addEventListener(
 
 
 function create_ui_components(game_obj) {
-
-    // TMP
-    // game.player_order = ['Josef', 'Katharine', 'Lloyd', 'Sean', 'Rebecca', 'Lucy'];
-    // for (let i = 0; i < game.player_order.length; ++i) {
-    //     let name = game.player_order[i];
-    //     game.players[name] = new Player(name, i);
-    // }
-    // shuffle(game.player_order);
-    // for (let i = 0; i < 3; ++i) {
-    //     game.sigils.add(SIGIL_NAMES[i]);
-    // }
-
 
     // Player list
     let player_box = document.getElementById('player_list');
@@ -58,6 +47,7 @@ function create_ui_components(game_obj) {
 
 	updateUI(game_obj);
 }
+
 
 function SigilBox() {
     this.sigil_box_div = document.getElementById('sigil_box');
@@ -149,6 +139,9 @@ function updateUI(game_state) {
 
     // Sigils
     sigilBox.assertSigilList(game_state.sigils);
+
+    // Log
+    logBox.innerHTML = game_state.log;
 
     // History tokens
     for (const [name_, player] of Object.entries(game_state.players)) {

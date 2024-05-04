@@ -10,6 +10,7 @@ game = {
 	decoy_choice_required: false,
 	player_col: undefined,
 	player_row: undefined,
+	log: "",
 }
 
 
@@ -157,6 +158,7 @@ function setGameState(new_state) {
 	game.moved_this_turn = new_state.moved_this_turn;
 	game.decoy_choice_required = new_state.decoy_choice_required;
 	game.movement_speed = new_state.movement_speed;
+	game.log = new_state.log;
 
 	for (const [name, player] of Object.entries(new_state.players)) {
 		game.players[name].history = player.history;
