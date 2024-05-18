@@ -79,7 +79,7 @@ function GridCell(row, column) {
 		return this.noise_token_positions[colour_id];
 	}
 
-	this.transition_noise_token = function(colour_id, value, type='blank') {
+	this.transition_noise_token = function(colour_id, value, type='noise') {
 		let token_id = 'noisetoken_' + this.row + '_' + this.col + '_' + colour_id;
 		let token = document.getElementById(token_id);
 
@@ -166,6 +166,11 @@ function Board() {
     	this.player_token.style.top = (y - PLAYER_TOKEN_SIZE / 2) + 'px';
 	}
 
+	this.fade_player_token = function() {	
+		this.player_token.style.transition = 'opacity 5s';
+		this.player_token.style.opacity = 0;
+	}
+
 	this.display_player_history = function(player) {
 		let new_history_repr = String(player.history);
 		if (this.current_historys[player.name] === new_history_repr) return;
@@ -177,7 +182,7 @@ function Board() {
 			if (event === null) continue;
 			let [event_type, cell_row, cell_col] = event;
 			let cell = this.cells[cell_row][cell_col];
-			cell.transition_noise_token(player.colour_id, i, 'blank');
+			cell.transition_noise_token(player.colour_id, i, event_type);
 			marked_cells.add(1000 * cell_row + cell_col); // 2D coord "hash"
 		}
 		let disused = player.currently_marked_cells.difference(marked_cells);

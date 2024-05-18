@@ -26,7 +26,7 @@ function create_ui_components(game_obj) {
 
         let icon =  document.createElement('img');
         icon.draggable = false;
-        icon.src = "static/symbols/" + ACADEMIC_NAMES[player.colour_id] + "_blank.png";
+        icon.src = "static/symbols/" + ACADEMIC_NAMES[player.colour_id] + "_noise.png";
         icon.className = "player-list-icon";
         player_icons[player_name] = icon;
         
@@ -39,12 +39,13 @@ function create_ui_components(game_obj) {
     actionBox = new ActionBox(game_obj);
     sigilBox = new SigilBox();
 
-    board.create_player_token(
-        game_obj.players[player_name].colour_id,
-        game_obj.player_row,
-        game_obj.player_col,
-    );
-
+    if (game_obj.players[player_name].alive) {
+        board.create_player_token(
+            game_obj.players[player_name].colour_id,
+            game_obj.player_row,
+            game_obj.player_col,
+        );
+    }
 	updateUI(game_obj);
 }
 
@@ -54,7 +55,7 @@ function SigilBox() {
     this.desc_field = document.getElementById('sigils_text');
     this.no_sigil_msg_field = document.getElementById('no_sigils_msg');
     this.buttons = [];
-    this.current_selection = null;
+    this.selection_callback = null;
 
 
     this.addSigil = function(sigil_name) {
@@ -82,6 +83,16 @@ function SigilBox() {
             this.desc_field.style.display = 'none';
             // btn.style.animation = '';
         };
+        btn.onmousedown = e => {
+            if (this.selection_callback == null) 
+                return;
+            let selection_callback = this.selection_callback;
+            this.selection_callback = null;
+            selection_callback({
+                name: btn.sigil_name,
+                idx: this.buttons.indexOf(btn)
+            });
+        }
     }
     
     this.removeSigil = function(i) {
@@ -119,8 +130,8 @@ function SigilBox() {
         }
     }
 
-    this.begin_selection = function() {
-
+    this.begin_selection = function(selection_callback) {
+        this.selection_callback = selection_callback;
     }
 
 }
@@ -149,7 +160,12 @@ function updateUI(game_state) {
     }
 
     // Player Token
-    board.move_player_token(game_state.player_row, game_state.player_col);
+    if (game_state.players[player_name].alive) {
+        board.move_player_token(game_state.player_row, game_state.player_col);
+    } else if (board.player_token !== undefined) {
+        destroy(board.player_token);
+        board.player_token = undefined;
+    }
 }
 
 
@@ -200,7 +216,7 @@ function ActionBox(game_state) {
         choose_sigil_confirm: '',
         choose_detection_hex: '',
         choose_detection_hex_confirm: '',
-        choose_discard: '',
+        choose_discard: 'Choose a sigil to discard',
     };
 
     this.transitionUpdate = function(message, duration, new_state_str) {
@@ -253,6 +269,9 @@ function ActionBox(game_state) {
             case 'choose_decoy_hex_confirm':
                 visible_buttons.add('confirm');
                 visible_buttons.add('cancel');
+                break;
+
+            case 'choose_discard':
                 break;
 
             default:

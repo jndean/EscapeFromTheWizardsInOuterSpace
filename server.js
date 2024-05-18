@@ -55,9 +55,13 @@ function Player(name, colour_id, warlock) {
 		this.base_speed = 1;
 	}
 	this.sigils = [];
+	if (name == 'sigils') this.sigils = ["Aggression", 'Detection', 'Resilience'];
+
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
 	this.decoy_choice_required = false;
 	this.speed_bonus = false;
+	this.alive = true;
+
 
 	this.update_history = function(update) { 
 		this.history.pop();
@@ -227,7 +231,6 @@ io.on('connection', (socket) => {
 		
 		let player = game.players[player_name];
 		if (!game.players[player_name].decoy_choice_required) return;
-		if ((player.current_row == args.row) && (player.current_col == args.col)) return;
 
 		player.decoy_choice_required = false;
 		player.update_history(['noise', args.row, args.col]);
@@ -257,9 +260,67 @@ io.on('connection', (socket) => {
 		// Move player
 		player.current_row = args.row;
 		player.current_col = args.col;
+		player.update_history(['attack', args.row, args.col]);
 		game.moved_this_turn = true;
 
-		// TODO: attack the space
+		// Has anybody been killed?
+		let killed = [];
+		let killed_warlocks = [];
+		for (const [name_, target] of Object.entries(game.players)) {
+			if (name_ == player_name ||
+				target.current_row != args.row ||
+				target.current_col != args.col) continue;
+			killed.push(target);
+		}
+
+		if (killed.length == 0) {
+			addToLog(player_name + " attacked, but nobody was there!");
+
+		} else {
+			let log_msg = player_name + " attacked, killing " + killed.join(' and ');
+			addToLog(log_msg + '.');
+
+			if (player.is_warlock) player.speed_bonus = true;
+
+			killed.forEach(p => {
+				p.alive = false;
+				p.update_history(['dead', args.row, args.col]);
+				if (p.is_warlock) killed_warlocks.push(p);
+			});
+		}
+
+		broadcast_game_state_transition('attack',{
+			attacker: player_name,
+			row: args.row,
+			col: args.col,
+			killed: killed.map(p => p.name),
+			roles: killed.map(p => p.is_warlock),
+			killed_warlocks: killed_warlocks.map(p => p.name),
+		});
+	});
+
+
+	socket.on('request_discard', (sigil) => {
+		if (game.phase != 'game') return;
+		if (player_name != game.player_order[game.current_player]) return;
+		
+		let player = game.players[player_name];
+		if (player.sigils.length <= GameData.MAX_SIGILS) return;
+		if (player.sigils[sigil.idx] != sigil.name) return;
+
+		player.sigils.splice(sigil.idx, 1);
+		addToLog(player_name + " discarded a sigil");
+		
+		broadcast_game_state_transition(
+			'discard',
+			data={
+				discarding_player: player_name
+			},
+			private_data={[player_name]: {
+				sigil_idx: sigil.idx
+			}}
+		);
+		
 	});
 
 
@@ -269,8 +330,11 @@ io.on('connection', (socket) => {
 		if (!game.moved_this_turn) return;
 		if (game.players[player_name].sigils.length > GameData.MAX_SIGILS) return;
 
-		game.current_player = (game.current_player + 1) % game.player_order.length;	
 		game.moved_this_turn = false;
+		do {
+			game.current_player = (game.current_player + 1) % game.player_order.length;
+			var alive = game.players[game.player_order[game.current_player]].alive;
+		} while (!alive);
 
 		broadcast_game_state_transition('next_player', {
 			player_name: game.player_order[game.current_player]
@@ -350,6 +414,11 @@ function start_new_game(map_name) {
 }
 
 function new_dangerous_hex_deck() {
+	// console.log("DEBUG: USING DUF DECK")
+	// game.dangerous_hex_deck = 
+	// 	new Array(1).fill('no_choice').concat(
+	// 		new Array(1).fill('choice')).concat(
+	// 			new Array(23).fill('silent'));
 	game.dangerous_hex_deck = 
 		new Array(27).fill('no_choice').concat(
 			new Array(27).fill('choice')).concat(
@@ -397,6 +466,7 @@ function broadcast_game_state_transition(
 	};
 	for (const [name, player] of Object.entries(game.players)) {
 		common_state.players[name] = {
+			alive: player.alive,
 			num_sigils: player.sigils.length,
 			history: player.history,
 		}

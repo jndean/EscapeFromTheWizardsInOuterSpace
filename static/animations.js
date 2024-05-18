@@ -435,6 +435,9 @@ function createAnimationSpiral(
 
 
 function createNoiseAnimation(x, y, colour) {
+	
+	x = scaleByPixelRatio(x) / canvas.width;
+	y = 1.0 - scaleByPixelRatio(y) / canvas.height;
 
 	// Randomly pick an effect to play
 	let noise_type = Math.floor(4 * Math.random());
@@ -534,7 +537,10 @@ function createNoiseAnimation(x, y, colour) {
 }
 
 
-function createAttackAnimation(x, y, colour1, colour2) {
+function createAttackAnimation(x, y, colour1, colour2) {	
+	x = scaleByPixelRatio(x) / canvas.width;
+	y = 1.0 - scaleByPixelRatio(y) / canvas.height;
+
 	var n = Math.floor(2 + Math.random() * 4);
 	var anims1 = [];
 
@@ -687,8 +693,8 @@ function createLobbyCurrentsAnimation() {
 
 document.addEventListener('mousedown', e => {
 
-    let x = scaleByPixelRatio(e.offsetX) / canvas.width;
-    let y = 1.0 - scaleByPixelRatio(e.offsetY) / canvas.height;
+	let x = e.offsetX;
+	let y = e.offsetY;
     // createNoiseAnimation(x, y, randomColour());
     // createAttackAnimation(x, y, randomColour(), randomColour());
     //createEscapeAnimation(x, y, randomColour());

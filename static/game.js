@@ -21,6 +21,7 @@ function Player(name, colour_id) {
 	this.num_sigils = 0;
 	this.history = Array(HISTORY_LENGTH).fill(null);
 	this.currently_marked_cells = new Set();
+	this.alive = true;
 }
 
 
@@ -133,6 +134,18 @@ function confirmDecoyButtonHandler () {
 	actionBox.update('choose_decoy_hex');
 }
 
+// ----- Discard ----- //
+
+actionBtnHandlers['discard'] = function () {
+	actionBox.update('choose_discard');
+	sigilBox.begin_selection(discardCallback);
+}
+
+function discardCallback(selection) {
+	socket.emit('request_discard', selection);
+	// actionBox.update('choose_action'); // Show a cancel button or something here?
+}
+
 // ----- Finish ----- //
 
 actionBtnHandlers['finish'] = function () {
@@ -161,6 +174,7 @@ function setGameState(new_state) {
 	game.log = new_state.log;
 
 	for (const [name, player] of Object.entries(new_state.players)) {
+		game.players[name].alive = player.alive;
 		game.players[name].history = player.history;
 		game.players[name].num_sigils = player.num_sigils;
 	}
@@ -238,6 +252,7 @@ const transition_functions = {
 	move: move_transition,
 	choose_noise: choose_noise_transition,
 	attack: attack_transition,
+	discard: discard_transition,
 	next_player: next_player_transition,
 }
 
@@ -347,15 +362,17 @@ function move_transition(data, new_state) {
 		board.end_cell_selector();
 		var move_delay = 2000;
 		board.move_player_token(new_state.player_row, new_state.player_col);
-		actionBox.transitionUpdate('You are moving...', move_delay, 'choose_action');
+		let next_actionBox_state = 'choose_action';
 		duration = Math.max(duration, move_delay);
 		if (data.sigil != null) {
 			sigilBox.addSigil(data.sigil);
 			let msg = 'You move carefully, and find a <font color="' + SIGIL_COLOURS[data.sigil]
-			            + '"> Sigil of ' + data.sigil + '</font>';
+						+ '"> Sigil of ' + data.sigil + '</font>';
 			let msg_duration = 5500;
 			if (new_state.sigils.length > MAX_SIGILS) {
 				msg += '<br> <font size=6>You have too many sigils, and must discard one before continuing. </font>'
+				sigilBox.begin_selection(discardCallback);
+				next_actionBox_state = 'choose_discard';
 			}
 			displayBannerMessage(msg, msg_duration);
 			duration = Math.max(duration, msg_duration);
@@ -364,6 +381,7 @@ function move_transition(data, new_state) {
 			displayBannerMessage('You move carefully, but find nothing...', msg_duration);
 			duration = Math.max(duration, msg_duration);
 		}
+		actionBox.transitionUpdate('You are moving...', move_delay, next_actionBox_state);
 	} else if ((data.moving_player == player_name) && data.already_moved) {
 		game.decoy_choice_required = new_state.decoy_choice_required;
 		actionBox.update('choose_action');
@@ -376,8 +394,6 @@ function move_transition(data, new_state) {
 	if (data.noise_coords != null) {
 		let [r, c] = data.noise_coords;
 		let [x, y] = board.cells[r][c].center_coords;
-		x = scaleByPixelRatio(x) / canvas.width;
-		y = 1.0 - scaleByPixelRatio(y) / canvas.height;
 		setTimeout(() => {
 			createNoiseAnimation(x, y, COLOURS[moving_player.colour_id]);
 		}, move_delay);
@@ -410,9 +426,57 @@ function choose_noise_transition(_, new_state) {
 }
 
 function attack_transition(data, _) {
-	
-	return 4000;
+	game.moved_this_turn = true;
+
+	let move_time = 0;
+	let attack_time = 3000;
+	let msg1_time = 6000;
+	let msg2_time = 0;
+
+	let attacking_player = game.players[data.attacker];
+	if (data.attacker == player_name) {
+		move_time = 2000;
+		board.move_player_token(data.row, data.col);
+		actionBox.transitionUpdate('You attack!', move_time, 'choose_action');
+	}
+
+	let [x, y] = board.cells[data.row][data.col].center_coords;
+	let attack_colour = COLOURS[attacking_player.colour_id];
+	let msg1 = data.attacker + " attacks, ";
+	if (data.killed.length > 0) {
+		// TODO: multikill => multicolour
+		var killed_colour = COLOURS[game.players[data.killed[0]].colour_id];
+		msg1 += "killing " + data.killed.join(' and ');
+		if (data.killed.includes(player_name)) {
+			msg2_time = 6000;
+			msg2 = "<font color=\"#a00\">You are Dead</font>"
+			board.fade_player_token();
+			// TODO: show player dead in UI panel
+		} else if (data.killed_warlocks.length > 0) {
+			msg2_time = 6000;
+			msg2 = "<font color=\"#a00\">Even a Warlock can be Killed</font>"
+		}
+	} else {
+		var killed_colour = {r:0, g:0, b:0};
+		msg1 += "but hits nothing...";
+	}
+
+	// Animation
+	setTimeout(() => {
+		createAttackAnimation(x, y, killed_colour, attack_colour);
+	}, move_time);
+
+	// TODO: Possibly killed player's token should fade during attack animation?
+	// Or not, if I get around to making tokens interact with the fluid sim.
+	// Banner msg
+	setTimeout(() => {
+		displayBannerMessage(msg1, msg1_time);}, move_time + attack_time);
+	if (msg2_time) setTimeout(() => {
+		displayBannerMessage(msg2, msg2_time);}, move_time + attack_time + msg1_time);
+
+	return move_time + attack_time + msg1_time + msg2_time;
 }
+
 
 function next_player_transition(data, _) {
 	game.player_changed = true;
@@ -423,4 +487,17 @@ function next_player_transition(data, _) {
 		actionBox.update('notmyturn');
 		return 0;
 	}
+}
+
+
+function discard_transition(data, _) {
+	if (data.discarding_player != player_name)
+		return 0;
+
+	let sigil_fade_delay = 900;
+	sigilBox.removeSigil(data.sigil_idx);
+	game.sigils.splice(data.sigil_idx, 1); // So that the action box definitely shows the right options
+	actionBox.transitionUpdate("", sigil_fade_delay, 'choose_action');
+
+	return sigil_fade_delay;
 }
