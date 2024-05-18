@@ -366,13 +366,19 @@ function move_transition(data, new_state) {
 		duration = Math.max(duration, move_delay);
 		if (data.sigil != null) {
 			sigilBox.addSigil(data.sigil);
+			game.sigils.push(data.sigil); // So tehre isn't a race condition for actionBox behaviour
 			let msg = 'You move carefully, and find a <font color="' + SIGIL_COLOURS[data.sigil]
 						+ '"> Sigil of ' + data.sigil + '</font>';
 			let msg_duration = 5500;
 			if (new_state.sigils.length > MAX_SIGILS) {
-				msg += '<br> <font size=6>You have too many sigils, and must discard one before continuing. </font>'
-				sigilBox.begin_selection(discardCallback);
-				next_actionBox_state = 'choose_discard';
+				msg += '<br> <font size=6>You have too many sigils, ';
+				if (game.is_warlock) {
+					msg += 'discard one before continuing. </font>';
+					sigilBox.begin_selection(discardCallback);
+					next_actionBox_state = 'choose_discard';
+				} else {
+					msg += 'use or discard one before continuing. </font>';
+				}
 			}
 			displayBannerMessage(msg, msg_duration);
 			duration = Math.max(duration, msg_duration);

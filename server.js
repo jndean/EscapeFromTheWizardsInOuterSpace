@@ -277,7 +277,7 @@ io.on('connection', (socket) => {
 			addToLog(player_name + " attacked, but nobody was there!");
 
 		} else {
-			let log_msg = player_name + " attacked, killing " + killed.join(' and ');
+			let log_msg = player_name + " attacked, killing " + killed.map(p => p.name).join(' and ');
 			addToLog(log_msg + '.');
 
 			if (player.is_warlock) player.speed_bonus = true;

@@ -239,29 +239,14 @@ function Board() {
 		this.current_valid_selections = (nhops === null) ?
 			null : this.get_nhop_neighbours(this.player_cell, nhops);
 
+		this.current_mouseover = null;
+		this.draw_selector_choices(all_hexes_unsafe);
+
 		this.cell_select_mousemove_handle = (e) => {
 			let cell = this.mouse_coords_to_cell(e.clientX, e.clientY);
 			if (cell === this.current_mouseover) return;
 			this.current_mouseover = cell;
-	
-			map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
-			if (this.current_valid_selections !== null) {
-				// Highlight valid selections
-				for (let i = 0; i < this.current_valid_selections.length; ++i) {
-					let opt = this.current_valid_selections[i];
-					let colour = (!opt.is_safe || all_hexes_unsafe)? '#ff0000' : '#00ff00';
-					opt.draw(null, colour + '50', 3, shrink=0.9);
-					if (opt === cell) {
-						opt.draw(colour + '30', null, 0, shrink=0.9);
-					}
-				}
-				return;
-			}
-
-			// Otherwise highlight any hex on mouseover
-			if (cell !== null && !cell.is_wall) {
-				cell.draw(null, '#ff000050', 3);
-			}
+			this.draw_selector_choices(all_hexes_unsafe);
 		};
 		overlay.addEventListener('mousemove', this.cell_select_mousemove_handle);
 
@@ -299,6 +284,27 @@ function Board() {
 		overlay.removeEventListener('mousemove', this.cell_select_mousemove_handle);
 		overlay.removeEventListener('mousedown', this.cell_select_mousedown_handle);
 		overlay.removeEventListener('mouseout', this.cell_select_mouseout_handle);
+	}
+
+	this.draw_selector_choices = function(all_hexes_unsafe) {
+		map_canvas_ctx.clearRect(0, 0, map_canvas.width, map_canvas.height);
+		if (this.current_valid_selections !== null) {
+			// Highlight valid selections
+			for (let i = 0; i < this.current_valid_selections.length; ++i) {
+				let opt = this.current_valid_selections[i];
+				let colour = (!opt.is_safe || all_hexes_unsafe)? '#ff0000' : '#00ff00';
+				opt.draw(null, colour + '50', 3, shrink=0.9);
+				if (opt === this.current_mouseover) {
+					opt.draw(colour + '30', null, 0, shrink=0.9);
+				}
+			}
+			return;
+		}
+
+		// Otherwise highlight any hex on mouseover
+		if (this.current_mouseover !== null && !this.current_mouseover.is_wall) {
+			this.current_mouseover.draw(null, '#ff000050', 3);
+		}
 	}
 
 	this.draw_selections = function() {
