@@ -117,7 +117,7 @@ function GridCell(row, column) {
 			symbol.id += 'beingdeletedleavemealone';
 			setTimeout(() => {map_counters_layer.removeChild(symbol);}, 1000);
 		} else {	
-			let min_opacity = 0.3;
+			let min_opacity = 0.5;
 			let opacity = min_opacity + (HISTORY_LENGTH - value) * ((1 - min_opacity) / HISTORY_LENGTH);
 			setTimeout(() => {
 				token.style.opacity = opacity;
@@ -154,6 +154,7 @@ function Board() {
 		this.player_token = document.createElement('img');
 		this.player_token.className = 'player-token';
 		this.player_token.src = 'static/symbols/' + ACADEMIC_NAMES[colour_id] + '.png';
+
 		map_counters_layer.appendChild(this.player_token);
 		this.move_player_token(row, col);
 		this.player_cell = this.cells[row][col];

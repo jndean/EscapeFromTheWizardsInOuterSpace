@@ -55,7 +55,8 @@ function Player(name, colour_id, warlock) {
 		this.base_speed = 1;
 	}
 	this.sigils = [];
-	if (name == 'sigils') this.sigils = ["Aggression", 'Detection', 'Resilience'];
+	if (name.startsWith('sigils')) this.sigils = ["Aggression", 'Silence', 'Momentum'];
+	this.active_sigils = new Set();
 
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
 	this.decoy_choice_required = false;
@@ -180,8 +181,15 @@ io.on('connection', (socket) => {
 			noise_result = 'safe_space';
 			player.update_history(null);
 		} else {
-			if (game.dangerous_hex_deck.length == 0) new_dangerous_hex_deck();
+			if (game.dangerous_hex_deck.length == 0) {
+				new_dangerous_hex_deck();
+			}
 			noise_result = game.dangerous_hex_deck.pop();
+			// Sigil of Silence suppresses noises
+			if (player.active_sigils.has('Silence')) {
+				noise_result = 'silent';
+				player.active_sigils.delete('Silence');
+			}
 		}
 		console.log(player_name, 'get result', noise_result);
 		if (noise_result == 'silent') {
@@ -324,13 +332,70 @@ io.on('connection', (socket) => {
 	});
 
 
+	socket.on('request_use_sigil', (sigil) => {
+		if (game.phase != 'game') return;
+		if (player_name != game.player_order[game.current_player]) return;
+		
+		let player = game.players[player_name];
+		if (player.sigils[sigil.idx] != sigil.name) return;
+
+		// Prevent players using sigils in ways that don't make sense
+		let reject_message = null;
+		if (sigil.name == 'Resilience') {
+			reject_message = 'Reslience is a passive sigil, you do not activate it';
+		} else if (player.active_sigils.has(sigil.name)) {
+			reject_message = 'You have already activated a <br>Sigil of ' + sigil.name + ' <br>this turn';
+		} else if (game.moved_this_turn && (
+					sigil.name == 'Aggression' || 
+					sigil.name == 'Silence' ||
+					sigil.name == 'Momentum')) {
+			reject_message = 'You must activate a Sigil of ' + sigil.name + ' before moving for it to be useful';
+		}
+		if (reject_message !== null) {
+			broadcast_game_state_transition('reject_use_sigil', {},
+				private_data={[player_name]: {
+					msg: reject_message,
+				}},
+				single_recipient=player_name,
+			);
+			return;
+		}
+
+		// Activate sigil
+		player.active_sigils.add(sigil.name);
+		player.sigils.splice(sigil.idx, 1);
+
+		if (sigil.name == 'Momentum') {
+			player.speed_bonus = true;
+			addToLog(player_name + ' activated a Sigil of Momentum');
+		} else if (sigil.name == 'Silence') {
+			addToLog(player_name + ' activated a Sigil of Silence');
+		}
+
+		broadcast_game_state_transition('sigil', {
+				player: player_name, 
+				name: sigil.name
+			},
+			private_data={[player_name]: {idx: sigil.idx}}
+		);
+	});
+
+
 	socket.on('finish_actions', args => {
 		if (game.phase != 'game') return;
 		if (player_name != game.player_order[game.current_player]) return;
 		if (!game.moved_this_turn) return;
 		if (game.players[player_name].sigils.length > GameData.MAX_SIGILS) return;
 
+		// Clear up state from this turn
 		game.moved_this_turn = false;
+		let player = game.players[player_name];
+		player.active_sigils.forEach(sigil => {
+			if (sigil == 'Momentum') player.speed_bonus = false;
+		});
+		player.active_sigils = new Set();
+
+		// Move onto next player
 		do {
 			game.current_player = (game.current_player + 1) % game.player_order.length;
 			var alive = game.players[game.player_order[game.current_player]].alive;
@@ -414,7 +479,7 @@ function start_new_game(map_name) {
 }
 
 function new_dangerous_hex_deck() {
-	// console.log("DEBUG: USING DUF DECK")
+	// console.log("DEBUG: USING DUFF DECK")
 	// game.dangerous_hex_deck = 
 	// 	new Array(1).fill('no_choice').concat(
 	// 		new Array(1).fill('choice')).concat(
@@ -484,6 +549,7 @@ function broadcast_game_state_transition(
 		player_state.player_row = player.current_row;
 		player_state.player_col = player.current_col;
 		player_state.decoy_choice_required = player.decoy_choice_required;
+		player_state.active_sigils = player.active_sigils;
 		player_state.movement_speed = player.base_speed + player.speed_bonus;
 
 		if (private_data.hasOwnProperty(name)) {

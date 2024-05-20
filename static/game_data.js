@@ -98,9 +98,9 @@ const SIGIL_DESCRIPTIONS = [
 	'Aggression:<br> You may Attack Move like a Warlock this turn.',
 	'Transposition:<br> Teleport to your starting hex.',
 	'Silence:<br> You will not disturb the aether this turn.',
-	'Detection:<br> Reveal players on or adjacent to a chosen hex.',
+	'Detection:<br> Reveal players on or adjacent to a hex of your choice.',
 	'Resilience: (Passive) <br> You will automatically survive 1 attack.',
-	'Momentum:<br> Move twice as far this turn.',
+	'Momentum:<br> Move up to two hexes this turn.',
 ];
 
 const SIGIL_COLOURS = {

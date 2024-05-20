@@ -108,20 +108,14 @@ html, body {
   }
 }
 
-@keyframes hue-rock {
+@keyframes rotate-hue {
   0% {
     filter: hue-rotate(0deg);
-    transform: scale(1);
-  }
-  50% {
-    filter: hue-rotate(-20deg);
-    transform: scale(1.02);
   }
   100% {
-    filter: hue-rotate(20deg);
-    transform: scale(1);
+    filter: hue-rotate(360deg);
   }
-}
+} 
 
 
 .action-button {
@@ -276,6 +270,11 @@ td {
   border-color: #000;
   background-color: #181818;
   border-style: solid;
+
+  
+  /* border-color: #111;
+  border-top-style: dashed;
+  border-bottom-style: dashed; */
 }
 
 @keyframes fadeIn {

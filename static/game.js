@@ -6,6 +6,7 @@ game = {
 	player_order: [],
 	current_player: null,
 	sigils: [],
+	active_sigils: new Set(),
 	moved_this_turn: false,
 	decoy_choice_required: false,
 	player_col: undefined,
@@ -81,6 +82,7 @@ function confirmMoveButtonHandler () {
 
 actionBtnHandlers['cancel'] = function () {
 	board.end_cell_selector();
+	sigilBox.end_selection();
 	actionBox.update('choose_action');
 }
 
@@ -146,6 +148,17 @@ function discardCallback(selection) {
 	// actionBox.update('choose_action'); // Show a cancel button or something here?
 }
 
+// ----- Use Sigile ----- //
+
+actionBtnHandlers['sigil'] = function () {
+	actionBox.update('choose_sigil');
+	sigilBox.begin_selection(sigilCallback);
+}
+
+function sigilCallback(selection) {
+	socket.emit('request_use_sigil', selection);
+}
+
 // ----- Finish ----- //
 
 actionBtnHandlers['finish'] = function () {
@@ -169,6 +182,7 @@ function setGameState(new_state) {
 	game.player_row = new_state.player_row;
 	game.phase = new_state.phase;
 	game.moved_this_turn = new_state.moved_this_turn;
+	game.active_sigils = new_state.active_sigils;
 	game.decoy_choice_required = new_state.decoy_choice_required;
 	game.movement_speed = new_state.movement_speed;
 	game.log = new_state.log;
@@ -253,6 +267,8 @@ const transition_functions = {
 	choose_noise: choose_noise_transition,
 	attack: attack_transition,
 	discard: discard_transition,
+	sigil: sigil_transition,
+	reject_use_sigil: reject_use_sigil_transition,
 	next_player: next_player_transition,
 }
 
@@ -300,7 +316,7 @@ function start_game_animation_transition(_, _) {
 
 	// Map swirls into view, the lobby text fades
 	map_image.src = 'static/maps/galilei_map_tests.png';
-	map_image.style.animation = 'rectifiedFadeIn ease 4s';
+	map_image.style.animation = 'rectifiedFadeIn ease 4s, rotate-hue 20s infinite linear';
 	show(map_image);
 	wallsTexture = galileiWallsTexture;
 	lore_field.style.animation = 'fadeOut ease 5s';
@@ -334,7 +350,7 @@ function player_rejoined_transition(args, new_state) {
 	destroy(join_div);
 	destroy(lore_field);
 	map_image.src = 'static/maps/galilei_map_tests.png';
-	map_image.style.animation = 'rectifiedFadeIn ease 1s';
+	map_image.style.animation = 'rectifiedFadeIn ease 1s, rotate-hue 20s infinite linear';
 	wallsTexture = galileiWallsTexture;
 	show(map_image);
 	UI_div.style.display = 'block';
@@ -481,6 +497,57 @@ function attack_transition(data, _) {
 		displayBannerMessage(msg2, msg2_time);}, move_time + attack_time + msg1_time);
 
 	return move_time + attack_time + msg1_time + msg2_time;
+}
+
+
+
+function reject_use_sigil_transition(data, _) {
+	let duration = 4000;
+	actionBox.transitionUpdate(
+		'<font color=#999 size=5>' + data.msg + '</font>', 
+		duration, 
+		'choose_action',
+	);
+	return duration;
+}
+
+
+
+function sigil_transition(sigil, new_state) {
+	
+	let banner_msg = ((player_name == sigil.player) ? ('You activate') : (player_name + " activates")) 
+		+ " a <font color=" + SIGIL_COLOURS[sigil.name] + '"> Sigil of ' + sigil.name + '</font>';
+
+	// Other players only notified now of sigils that don't require a further choice
+	if (sigil.player != player_name) {
+		if (sigil.name == 'Momentum' || sigil.name == 'Silence') {
+			displayBannerMessage(banner_msg, 6000);
+			return 6000;
+		}
+		return 0;
+	}
+	
+	// Active player enacts sigil changes
+	game.active_sigils = new_state.active_sigils;
+	sigilBox.removeSigil(sigil.idx);
+
+	if (sigil.name == 'Momentum' || sigil.name == 'Silence') {
+		displayBannerMessage(banner_msg, 5000);
+		actionBox.transitionUpdate('Activated Sigil of ' + sigil.name, 4000, 'choose_action');
+		game.movement_speed = new_state.movement_speed;
+		return 4000;
+	} else if (sigil.name == 'Aggression') {
+		actionBox.update('choose_attack_hex');
+		console.log("TODO: implement attack sigil");
+	} else if (sigil.name == 'Detection') {
+		actionBox.update('choose_detection_hex');
+		console.log("TODO: implement detection sigil");
+	} else if (sigil.name == 'Transposition') {
+		actionBox.update('choose_teleport_hex');
+		console.log("TODO: implement teleport sigil");
+	}
+
+	return 0;
 }
 
 

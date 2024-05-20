@@ -134,6 +134,10 @@ function SigilBox() {
         this.selection_callback = selection_callback;
     }
 
+    this.end_selection = function() {
+        this.selection_callback = null;
+    }
+
 }
 
 function updateUI(game_state) {
@@ -200,6 +204,8 @@ function ActionBox(game_state) {
         'choose_sigil_confirm',
         'choose_detection_hex',
         'choose_detection_hex_confirm',
+        'choose_teleport_hex',
+        'choose_teleport_hex_confirm',
         'choose_discard',
     ];
 
@@ -212,10 +218,12 @@ function ActionBox(game_state) {
         choose_decoy_hex_confirm: 'Confirm disturbance',
         choose_attack_hex: 'Choose a hex to attack',
         choose_attack_hex_confirm: 'Confirm attack',
-        choose_sigil: '',
+        choose_sigil: 'Choose a sigil to activate',
         choose_sigil_confirm: '',
         choose_detection_hex: '',
         choose_detection_hex_confirm: '',
+        choose_teleport_hex: '',
+        choose_teleport_hex_confirm: '',
         choose_discard: 'Choose a sigil to discard',
     };
 
@@ -270,8 +278,10 @@ function ActionBox(game_state) {
                 visible_buttons.add('confirm');
                 visible_buttons.add('cancel');
                 break;
-
+                
             case 'choose_discard':
+            case 'choose_sigil':
+                visible_buttons.add('cancel');
                 break;
 
             default:
