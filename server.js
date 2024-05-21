@@ -22,6 +22,7 @@ var GameData = require('./static/game_data');
 
 var game = {
 	phase: 'lobby',
+	round: 0,
 	sockets: {},
 	players: {},
 	player_order: [],
@@ -55,7 +56,7 @@ function Player(name, colour_id, warlock) {
 		this.base_speed = 1;
 	}
 	this.sigils = [];
-	if (name.startsWith('sigils')) this.sigils = ["Aggression", 'Silence', 'Momentum'];
+	if (name.startsWith('sigils')) this.sigils = ['Transposition', 'Transposition', 'Momentum'];
 	this.active_sigils = new Set();
 
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
@@ -122,7 +123,6 @@ io.on('connection', (socket) => {
 				player_order: game.player_order,
 				player_to_colour: lobby.player_to_colour,
 			}); 
-			// socket.emit('rejoin_success', player_name);
 		}
 	});
 
@@ -264,6 +264,7 @@ io.on('connection', (socket) => {
 		
 		let player = game.players[player_name];
 		if ((player.current_row == args.row) && (player.current_col == args.col)) return;
+		if (!player.is_warlock && !player.active_sigils.has('Aggression')) return;
 
 		// Move player
 		player.current_row = args.row;
@@ -345,11 +346,16 @@ io.on('connection', (socket) => {
 			reject_message = 'Reslience is a passive sigil, you do not activate it';
 		} else if (player.active_sigils.has(sigil.name)) {
 			reject_message = 'You have already activated a <br>Sigil of ' + sigil.name + ' <br>this turn';
-		} else if (game.moved_this_turn && (
-					sigil.name == 'Aggression' || 
-					sigil.name == 'Silence' ||
-					sigil.name == 'Momentum')) {
+		} else if (game.moved_this_turn && (sigil.name == 'Aggression' || 
+											sigil.name == 'Silence' ||
+											sigil.name == 'Momentum')) {
 			reject_message = 'You must activate a Sigil of ' + sigil.name + ' before moving for it to be useful';
+		} else if (
+			sigil.name == 'Transposition' && 
+			player.current_row == GameData.GALILEI_WIZARD_SPAWN[0] &&
+			player.current_col == GameData.GALILEI_WIZARD_SPAWN[1]
+		) {
+			reject_message = 'You are already on the starting space';
 		}
 		if (reject_message !== null) {
 			broadcast_game_state_transition('reject_use_sigil', {},
@@ -362,15 +368,19 @@ io.on('connection', (socket) => {
 		}
 
 		// Activate sigil
-		player.active_sigils.add(sigil.name);
+		if (sigil.name != 'Transposition' && sigil.name != 'Detection') {
+			player.active_sigils.add(sigil.name);
+		}
 		player.sigils.splice(sigil.idx, 1);
+		addToLog(player_name + ' activated a Sigil of ' + sigil.name);
 
 		if (sigil.name == 'Momentum') {
 			player.speed_bonus = true;
-			addToLog(player_name + ' activated a Sigil of Momentum');
-		} else if (sigil.name == 'Silence') {
-			addToLog(player_name + ' activated a Sigil of Silence');
+		} else if (sigil.name == 'Transposition') {
+			player.current_row = GameData.GALILEI_WIZARD_SPAWN[0];
+			player.current_col = GameData.GALILEI_WIZARD_SPAWN[1];
 		}
+		// TODO: Should be able to use Detection twice in a turn
 
 		broadcast_game_state_transition('sigil', {
 				player: player_name, 
@@ -398,8 +408,12 @@ io.on('connection', (socket) => {
 		// Move onto next player
 		do {
 			game.current_player = (game.current_player + 1) % game.player_order.length;
+			if (game.current_player == 0) {
+				game.round += 1;
+			}
 			var alive = game.players[game.player_order[game.current_player]].alive;
 		} while (!alive);
+
 
 		broadcast_game_state_transition('next_player', {
 			player_name: game.player_order[game.current_player]
@@ -467,6 +481,7 @@ function start_new_game(map_name) {
 	// Starting the game is a 2-part, 2-message process
 	game.phase = 'starting';
 	game.current_player = 0;
+	game.round = 0;
 	broadcast_game_state_transition('start_game_init_state', {
 		map_name: map_name,
 		player_order: game.player_order,
@@ -549,7 +564,7 @@ function broadcast_game_state_transition(
 		player_state.player_row = player.current_row;
 		player_state.player_col = player.current_col;
 		player_state.decoy_choice_required = player.decoy_choice_required;
-		player_state.active_sigils = player.active_sigils;
+		player_state.active_sigils = Array.from(player.active_sigils);
 		player_state.movement_speed = player.base_speed + player.speed_bonus;
 
 		if (private_data.hasOwnProperty(name)) {

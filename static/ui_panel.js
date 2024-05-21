@@ -204,8 +204,6 @@ function ActionBox(game_state) {
         'choose_sigil_confirm',
         'choose_detection_hex',
         'choose_detection_hex_confirm',
-        'choose_teleport_hex',
-        'choose_teleport_hex_confirm',
         'choose_discard',
     ];
 
@@ -222,8 +220,6 @@ function ActionBox(game_state) {
         choose_sigil_confirm: '',
         choose_detection_hex: '',
         choose_detection_hex_confirm: '',
-        choose_teleport_hex: '',
-        choose_teleport_hex_confirm: '',
         choose_discard: 'Choose a sigil to discard',
     };
 
@@ -252,7 +248,7 @@ function ActionBox(game_state) {
                 }
                 if (!this.game_state.moved_this_turn) {
                     visible_buttons.add('move');
-                    if (this.game_state.is_warlock) {
+                    if (this.game_state.is_warlock || this.game_state.active_sigils.has('Aggression')) {
                         visible_buttons.add('attack');
                     }
                 } else {

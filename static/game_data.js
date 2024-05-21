@@ -96,7 +96,7 @@ const SIGIL_NAMES = [
 
 const SIGIL_DESCRIPTIONS = [
 	'Aggression:<br> You may Attack Move like a Warlock this turn.',
-	'Transposition:<br> Teleport to your starting hex.',
+	'Transposition:<br> Teleport to your starting hex, before or after you move.',
 	'Silence:<br> You will not disturb the aether this turn.',
 	'Detection:<br> Reveal players on or adjacent to a hex of your choice.',
 	'Resilience: (Passive) <br> You will automatically survive 1 attack.',

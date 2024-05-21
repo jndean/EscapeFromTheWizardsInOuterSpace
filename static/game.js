@@ -148,9 +148,10 @@ function discardCallback(selection) {
 	// actionBox.update('choose_action'); // Show a cancel button or something here?
 }
 
-// ----- Use Sigile ----- //
+// ----- Use Sigil ----- //
 
 actionBtnHandlers['sigil'] = function () {
+	board.end_cell_selector();
 	actionBox.update('choose_sigil');
 	sigilBox.begin_selection(sigilCallback);
 }
@@ -182,7 +183,7 @@ function setGameState(new_state) {
 	game.player_row = new_state.player_row;
 	game.phase = new_state.phase;
 	game.moved_this_turn = new_state.moved_this_turn;
-	game.active_sigils = new_state.active_sigils;
+	game.active_sigils = new Set(new_state.active_sigils);
 	game.decoy_choice_required = new_state.decoy_choice_required;
 	game.movement_speed = new_state.movement_speed;
 	game.log = new_state.log;
@@ -369,7 +370,7 @@ function move_transition(data, new_state) {
 
 	// Non moving players, silent movemnt
 	if ((data.moving_player != player_name) && (data.noise_coords === null)) {
-		displayBannerMessage(data.moving_player + " moves silently...", 6000);
+		displayBannerMessage(data.moving_player + " moves silently...", 6000, 50);
 		duration = Math.max(duration, 6000);
 	}
 
@@ -396,11 +397,11 @@ function move_transition(data, new_state) {
 					msg += 'use or discard one before continuing. </font>';
 				}
 			}
-			displayBannerMessage(msg, msg_duration);
+			displayBannerMessage(msg, msg_duration, 45);
 			duration = Math.max(duration, msg_duration);
 		} else if (data.danger_result == 'silent') {
 			let msg_duration = 4000; // Do we want these common messages to be faster?
-			displayBannerMessage('You move carefully, but find nothing...', msg_duration);
+			displayBannerMessage('You move carefully, but find nothing...', msg_duration, 45);
 			duration = Math.max(duration, msg_duration);
 		}
 		actionBox.transitionUpdate('You are moving...', move_delay, next_actionBox_state);
@@ -515,39 +516,40 @@ function reject_use_sigil_transition(data, _) {
 
 function sigil_transition(sigil, new_state) {
 	
-	let banner_msg = ((player_name == sigil.player) ? ('You activate') : (player_name + " activates")) 
-		+ " a <font color=" + SIGIL_COLOURS[sigil.name] + '"> Sigil of ' + sigil.name + '</font>';
-
-	// Other players only notified now of sigils that don't require a further choice
+	let banner_msg = ((player_name == sigil.player) ? ('You activate') : (player_name + ' activates')) 
+		+ ' a <font color="' + SIGIL_COLOURS[sigil.name] + '"> Sigil of ' + sigil.name + '</font>';
+		
 	if (sigil.player != player_name) {
-		if (sigil.name == 'Momentum' || sigil.name == 'Silence') {
-			displayBannerMessage(banner_msg, 6000);
-			return 6000;
-		}
-		return 0;
+		let banner_delay = 6000;
+		displayBannerMessage(banner_msg, banner_delay, 45);
+		return banner_delay;
 	}
+
+	let banner_delay = 5000;
+	displayBannerMessage(banner_msg, banner_delay, 45);
 	
 	// Active player enacts sigil changes
-	game.active_sigils = new_state.active_sigils;
 	sigilBox.removeSigil(sigil.idx);
+	game.active_sigils = new Set(new_state.active_sigils);
+	game.movement_speed = new_state.movement_speed;
 
 	if (sigil.name == 'Momentum' || sigil.name == 'Silence') {
-		displayBannerMessage(banner_msg, 5000);
-		actionBox.transitionUpdate('Activated Sigil of ' + sigil.name, 4000, 'choose_action');
-		game.movement_speed = new_state.movement_speed;
-		return 4000;
+		actionBox.transitionUpdate('Activated Sigil of ' + sigil.name, banner_delay, 'choose_action');
+		
 	} else if (sigil.name == 'Aggression') {
-		actionBox.update('choose_attack_hex');
-		console.log("TODO: implement attack sigil");
+		actionBox.transitionUpdate('Activated Sigil of Aggression', banner_delay, 'choose_attack_hex');
+		setTimeout(actionBtnHandlers['attack'], banner_delay);
+		
 	} else if (sigil.name == 'Detection') {
 		actionBox.update('choose_detection_hex');
 		console.log("TODO: implement detection sigil");
-	} else if (sigil.name == 'Transposition') {
-		actionBox.update('choose_teleport_hex');
-		console.log("TODO: implement teleport sigil");
-	}
 
-	return 0;
+	} else if (sigil.name == 'Transposition') {
+		board.move_player_token(new_state.player_row, new_state.player_col);
+		actionBox.transitionUpdate('You teleport back to the start', banner_delay, 'choose_action');
+	}
+	
+	return banner_delay;
 }
 
 
