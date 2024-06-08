@@ -56,7 +56,7 @@ function Player(name, colour_id, warlock) {
 		this.base_speed = 1;
 	}
 	this.sigils = [];
-	if (name.startsWith('sigils')) this.sigils = ['Transposition', 'Transposition', 'Momentum'];
+	if (name.startsWith('sigils')) this.sigils = ['Aggression', 'Momentum', 'Resilience'];
 	this.active_sigils = new Set();
 
 	this.history = Array(GameData.HISTORY_LENGTH).fill(null);
@@ -275,27 +275,42 @@ io.on('connection', (socket) => {
 		// Has anybody been killed?
 		let killed = [];
 		let killed_warlocks = [];
+		let resilient = [];
 		for (const [name_, target] of Object.entries(game.players)) {
 			if (name_ == player_name ||
 				target.current_row != args.row ||
-				target.current_col != args.col) continue;
-			killed.push(target);
+				target.current_col != args.col ||
+				!target.alive) continue;
+			
+			if (target.is_warlock) {
+				killed.push(target);
+				killed_warlocks.push(target);
+			} else if (target.sigils.includes('Resilience')) {
+				// Sigil of resilience automatically protects, then is consumed
+				resilient.push(target);
+				target.sigils.splice(target.sigils.indexOf('Resilience'), 1);
+			} else {
+				killed.push(target);
+			}
 		}
 
-		if (killed.length == 0) {
-			addToLog(player_name + " attacked, but nobody was there!");
-
-		} else {
-			let log_msg = player_name + " attacked, killing " + killed.map(p => p.name).join(' and ');
-			addToLog(log_msg + '.');
-
+		if (killed.length > 0) {
+			addToLog(player_name + " attacked, killing " + killed.map(p => p.name).join(' and ') + '.');
 			if (player.is_warlock) player.speed_bonus = true;
-
 			killed.forEach(p => {
 				p.alive = false;
 				p.update_history(['dead', args.row, args.col]);
 				if (p.is_warlock) killed_warlocks.push(p);
 			});
+		}
+		if (resilient.length > 0) {
+			let msg = '';
+			if (killed.length == 0) msg = player_name + " attacked, but ";
+			msg += resilient.map(p => p.name).join(' and ') + ' had a Sigil of Resilience!';
+			addToLog(msg);
+		}
+		if ((killed.length == 0) && (resilient.length == 0)) {
+			addToLog(player_name + " attacked, but nobody was there!");
 		}
 
 		broadcast_game_state_transition('attack',{
@@ -303,8 +318,8 @@ io.on('connection', (socket) => {
 			row: args.row,
 			col: args.col,
 			killed: killed.map(p => p.name),
-			roles: killed.map(p => p.is_warlock),
 			killed_warlocks: killed_warlocks.map(p => p.name),
+			resilient: resilient.map(p => p.name),
 		});
 	});
 

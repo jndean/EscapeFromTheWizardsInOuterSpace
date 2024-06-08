@@ -7,7 +7,7 @@ var game_view = document.getElementById("game_view");
 var board = undefined;
 var game = undefined;
 
-var debug_mode = true;
+var debug_mode = false;
 
 
 function show(x) {x.style.display = 'block';}

@@ -448,15 +448,16 @@ function choose_noise_transition(_, new_state) {
 	return move_delay;
 }
 
-function attack_transition(data, _) {
+function attack_transition(data, new_state) {
 	game.moved_this_turn = true;
 
 	let move_time = 0;
 	let attack_time = 3000;
-	let msg1_time = 6000;
-	let msg2_time = 0;
+	let single_msg_time = 6000;
+	let msg_time = 0;
 
 	let attacking_player = game.players[data.attacker];
+	attacking_player.history = new_state.players[data.attacker].history;
 	if (data.attacker == player_name) {
 		move_time = 2000;
 		board.move_player_token(data.row, data.col);
@@ -465,23 +466,32 @@ function attack_transition(data, _) {
 
 	let [x, y] = board.cells[data.row][data.col].center_coords;
 	let attack_colour = COLOURS[attacking_player.colour_id];
-	let msg1 = data.attacker + " attacks, ";
+	let msgs = [];
 	if (data.killed.length > 0) {
 		// TODO: multikill => multicolour
 		var killed_colour = COLOURS[game.players[data.killed[0]].colour_id];
-		msg1 += "killing " + data.killed.join(' and ');
-		if (data.killed.includes(player_name)) {
-			msg2_time = 6000;
-			msg2 = "<font color=\"#a00\">You are Dead</font>"
-			board.fade_player_token();
-			// TODO: show player dead in UI panel
-		} else if (data.killed_warlocks.length > 0) {
-			msg2_time = 6000;
-			msg2 = "<font color=\"#a00\">Even a Warlock can be Killed</font>"
-		}
-	} else {
+		msgs.push(
+			"<font color=\"#a00\">" + data.attacker + " attacks, killing "
+			+ data.killed.join(' and ') + "</font>"
+		);
+	}
+	if (data.resilient.length > 0) {
+		let msg = '';
+		if (data.killed.length == 0) msg = data.attacker + " attacks, but ";
+		msg += data.resilient.join(' and ') + ' survives using a <br><font color="';
+		msg += SIGIL_COLOURS['Resilience'] + '"> Sigil of Resilience</font>!';
+		msgs.push(msg);
+	}
+	if ((data.killed.length == 0) && (data.resilient.length == 0)) {
 		var killed_colour = {r:0, g:0, b:0};
-		msg1 += "but hits nothing...";
+		msgs.push(data.attacker + " attacks, but hits nothing...");
+	}
+	if (data.killed.includes(player_name)) {
+		msgs.push("<font color=\"#a00\">You are Dead</font>");
+		board.fade_player_token();
+		// TODO: show player dead in UI panel
+	} else if (data.killed_warlocks.length > 0) {
+		msgs.push("<font color=\"#a00\">Even a Warlock can be Killed</font>");
 	}
 
 	// Animation
@@ -493,11 +503,14 @@ function attack_transition(data, _) {
 	// Or not, if I get around to making tokens interact with the fluid sim.
 	// Banner msg
 	setTimeout(() => {
-		displayBannerMessage(msg1, msg1_time);}, move_time + attack_time);
-	if (msg2_time) setTimeout(() => {
-		displayBannerMessage(msg2, msg2_time);}, move_time + attack_time + msg1_time);
+		msgs.forEach(msg => {
+			displayBannerMessage(msg, single_msg_time);
+			msg_time += single_msg_time;
+		});
+		board.display_player_history(attacking_player);
+	}, move_time + attack_time);
 
-	return move_time + attack_time + msg1_time + msg2_time;
+	return move_time + attack_time + msg_time;
 }
 
 
@@ -516,7 +529,7 @@ function reject_use_sigil_transition(data, _) {
 
 function sigil_transition(sigil, new_state) {
 	
-	let banner_msg = ((player_name == sigil.player) ? ('You activate') : (player_name + ' activates')) 
+	let banner_msg = ((player_name == sigil.player) ? ('You activate') : (sigil.player + ' activates')) 
 		+ ' a <font color="' + SIGIL_COLOURS[sigil.name] + '"> Sigil of ' + sigil.name + '</font>';
 		
 	if (sigil.player != player_name) {
