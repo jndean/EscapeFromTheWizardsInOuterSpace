@@ -555,6 +555,7 @@ function broadcast_game_state_transition(
 	let common_state = {
 		phase: game.phase,
 		current_player: game.current_player,
+		round: game.round,
 		players: {},
 		moved_this_turn: game.moved_this_turn,
 		log: game.log.formatted,

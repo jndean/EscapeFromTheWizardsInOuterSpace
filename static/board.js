@@ -80,21 +80,21 @@ function GridCell(row, column) {
 	}
 
 	this.transition_noise_token = function(colour_id, value, type='noise') {
-		let token_id = 'noisetoken_' + this.row + '_' + this.col + '_' + colour_id;
+		let token_id = 'token_' + this.row + '_' + this.col + '_' + colour_id;
 		let token = document.getElementById(token_id);
 
 		if (token === null) {
 			token = document.createElement('img');
 			token.className = 'noise-token';
 			token.id = token_id;
-			token.src = 'static/symbols/' + ACADEMIC_NAMES[colour_id] + '_' + type +'.png';
 			let [x, y] = this.colour_to_position(colour_id);
 			token.style.left = x + 'px';
 			token.style.top = y + 'px';
 			token.style.opacity = 0;
 			map_counters_layer.appendChild(token);
 		}
-
+		token.src = 'static/symbols/' + ACADEMIC_NAMES[colour_id] + '_' + type +'.png';
+			
 		// TODO: Record in this.current_noise_symbols, always fade out current symbol then fade in new symbol
 		let symbol_id = token_id + '_symbol';
 		let symbol = document.getElementById(symbol_id);
@@ -121,10 +121,10 @@ function GridCell(row, column) {
 			let opacity = min_opacity + (HISTORY_LENGTH - value) * ((1 - min_opacity) / HISTORY_LENGTH);
 			setTimeout(() => {
 				token.style.opacity = opacity;
-				symbol.style.opacity = 0.8;
+				symbol.style.opacity = (type == 'dead')? 0.0 : 0.8;
 			}, 100); // Makes sure there's enough time for the opacity=0 to take effect
 
-			if (0 <= value || value <= 9) {
+			if (0 <= value && value <= 9) {
 				symbol.src = 'static/symbols/' + value + '.png';
 			}
 		}
@@ -155,7 +155,7 @@ function Board() {
 		this.player_token.className = 'player-token';
 		this.player_token.src = 'static/symbols/' + ACADEMIC_NAMES[colour_id] + '.png';
 
-		map_counters_layer.appendChild(this.player_token);
+		document.getElementById('player_counters').appendChild(this.player_token);
 		this.move_player_token(row, col);
 		this.player_cell = this.cells[row][col];
 	}

@@ -155,6 +155,11 @@ function updateUI(game_state) {
     // Sigils
     sigilBox.assertSigilList(game_state.sigils);
 
+    // Action Box
+    if (!game_state.players[player_name].alive) {
+		actionBox.update('dead');
+    }
+
     // Log
     logBox.innerHTML = game_state.log;
 
@@ -193,6 +198,7 @@ function ActionBox(game_state) {
 
     this.possible_states = [
         'notmyturn',
+        'dead',
         'choose_action',
         'choose_move_hex',
         'choose_move_hex_confirm',
@@ -209,6 +215,7 @@ function ActionBox(game_state) {
 
     this.state_msgs = {
         notmyturn: '<font color="#777" size=5>It is not your turn...</font>',
+        dead: '<font color="#666" size=5>You are Dead<br>No action is required of you</font>',
         choose_action: 'Choose an action...',
         choose_move_hex: 'Choose where to go',
         choose_move_hex_confirm: 'Confirm move',
@@ -240,6 +247,7 @@ function ActionBox(game_state) {
         let visible_buttons = new Set();
         switch (this.state) {
             case 'notmyturn':
+            case 'dead':
                 break;
                 
             case 'choose_action':

@@ -2,6 +2,7 @@ var state_transistions = [];
 
 game = {
 	phase: 'login',
+	round: 0,
 	players: {},
 	player_order: [],
 	current_player: null,
@@ -182,6 +183,7 @@ function setGameState(new_state) {
 	game.player_col = new_state.player_col;
 	game.player_row = new_state.player_row;
 	game.phase = new_state.phase;
+	game.round = new_state.round;
 	game.moved_this_turn = new_state.moved_this_turn;
 	game.active_sigils = new Set(new_state.active_sigils);
 	game.decoy_choice_required = new_state.decoy_choice_required;
@@ -198,7 +200,7 @@ function setGameState(new_state) {
 		game.player_changed = false;
 		if (player_name == game.player_order[game.current_player]) {
 			actionBox.update('choose_action');
-			if (!game.moved_this_turn) {
+			if (!game.moved_this_turn && game.round != 0) {
 				board.begin_cell_selector(moveHexSelectedCallback, game.movement_speed);
 			}
 		}
@@ -458,6 +460,9 @@ function attack_transition(data, new_state) {
 
 	let attacking_player = game.players[data.attacker];
 	attacking_player.history = new_state.players[data.attacker].history;
+	data.killed.forEach(killed_name => {
+		game.players[killed_name].history = new_state.players[killed_name].history
+	});
 	if (data.attacker == player_name) {
 		move_time = 2000;
 		board.move_player_token(data.row, data.col);
@@ -466,12 +471,13 @@ function attack_transition(data, new_state) {
 
 	let [x, y] = board.cells[data.row][data.col].center_coords;
 	let attack_colour = COLOURS[attacking_player.colour_id];
+	let killed_colour = {r:0, g:0, b:0};
 	let msgs = [];
 	if (data.killed.length > 0) {
 		// TODO: multikill => multicolour
-		var killed_colour = COLOURS[game.players[data.killed[0]].colour_id];
+		killed_colour = COLOURS[game.players[data.killed[0]].colour_id];
 		msgs.push(
-			"<font color=\"#a00\">" + data.attacker + " attacks, killing "
+			"<font color=\"#a00\">" + data.attacker + " attacks and kills "
 			+ data.killed.join(' and ') + "</font>"
 		);
 	}
@@ -483,8 +489,7 @@ function attack_transition(data, new_state) {
 		msgs.push(msg);
 	}
 	if ((data.killed.length == 0) && (data.resilient.length == 0)) {
-		var killed_colour = {r:0, g:0, b:0};
-		msgs.push(data.attacker + " attacks, but hits nothing...");
+		msgs.push(data.attacker + " attacks an empty space...");
 	}
 	if (data.killed.includes(player_name)) {
 		msgs.push("<font color=\"#a00\">You are Dead</font>");
@@ -508,6 +513,7 @@ function attack_transition(data, new_state) {
 			msg_time += single_msg_time;
 		});
 		board.display_player_history(attacking_player);
+		data.killed.forEach(killed_name => {board.display_player_history(game.players[killed_name])});
 	}, move_time + attack_time);
 
 	return move_time + attack_time + msg_time;
@@ -566,7 +572,7 @@ function sigil_transition(sigil, new_state) {
 }
 
 
-function next_player_transition(data, _) {
+function next_player_transition(data, new_state) {
 	game.player_changed = true;
 	if (data.player_name == player_name) {
 		displayBannerMessage("Your turn...", 4500);
